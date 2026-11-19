@@ -9,6 +9,7 @@ import { Footer } from '@/components/layout/footer';
 import { Header } from '@/components/layout/header';
 import { OfflineIndicator } from '@/components/pwa/offline-indicator';
 import { StoreProvider } from '@/components/providers/store-provider';
+import { getSiteBaseUrl } from '@/lib/seo/metadata';
 import { getStore } from '@/lib/store/repository';
 
 export const dynamic = 'force-dynamic';
@@ -34,12 +35,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteBaseUrl()),
   title: {
     default: 'Radhakrishna Panchadhatu | Handcrafted Panchadhatu & Steel Jewellery',
     template: '%s | Radhakrishna Panchadhatu',
   },
   description:
-    'Handcrafted Panchadhatu & 316L Surgical Steel Jewellery from Yogikuti, Santichowk, Butwal. Nationwide delivery across Nepal with eSewa, Khalti, Fonepay & Cash on Delivery.',
+    'Handcrafted Panchadhatu & 316L Surgical Steel Jewellery from Yogikuti, Santichowk, Butwal. Nationwide delivery across Nepal with eSewa, Khalti, Fonepay & COD.',
   applicationName: 'Radhakrishna Panchadhatu',
   appleWebApp: {
     capable: true,
@@ -56,6 +58,22 @@ export const metadata: Metadata = {
       'Authentic five-metal Panchadhatu ornaments and modern 316L surgical steel jewellery delivered across Nepal.',
     type: 'website',
     locale: 'en_NP',
+    siteName: 'Radhakrishna Panchadhatu',
+    images: [
+      {
+        url: '/images/hero-panchadhatu.jpg',
+        width: 1200,
+        height: 675,
+        alt: 'Radhakrishna Panchadhatu crafted Nepali ornaments',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Radhakrishna Panchadhatu | Butwal, Nepal',
+    description:
+      'Authentic five-metal Panchadhatu ornaments and modern 316L surgical steel jewellery delivered across Nepal.',
+    images: ['/images/hero-panchadhatu.jpg'],
   },
 };
 
