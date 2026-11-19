@@ -1,6 +1,7 @@
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Cormorant_Garamond, Manrope } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
 import { AnnouncementBar } from '@/components/layout/announcement-bar';
 import { CartDrawer } from '@/components/layout/cart-drawer';
 import { CookieConsentBanner } from '@/components/layout/cookie-consent-banner';
@@ -78,6 +79,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <CookieConsentBanner />
           <OfflineIndicator />
         </StoreProvider>
+        <Analytics />
       </body>
     </html>
   );
