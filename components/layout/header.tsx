@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Heart, Menu, Search, ShoppingBag, User, X } from 'lucide-react';
+import { HeaderSearch } from '@/components/layout/header-search';
 import { useStore } from '@/components/providers/store-provider';
 
 const NAV_LINKS = [
@@ -17,15 +18,19 @@ const NAV_LINKS = [
 export function Header({ storeName = 'Radhakrishna Panchadhatu' }: { storeName?: string }) {
   const { cartCount, wishlist, setCartDrawerOpen, user } = useStore();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur-md">
-      <div className="container-shell flex h-16 items-center justify-between gap-4">
-        {/* Zone 1: Brand + mobile menu button */}
-        <div className="flex items-center gap-3">
+      <div className="container-shell flex h-16 items-center justify-between gap-3 xl:gap-6">
+        {/* Brand + mobile menu button */}
+        <div className="flex items-center gap-2.5 shrink-0">
           <button
             type="button"
-            onClick={() => setMobileOpen((prev) => !prev)}
+            onClick={() => {
+              setMobileOpen((prev) => !prev);
+              setMobileSearchOpen(false);
+            }}
             aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
             className="rounded-lg p-1.5 text-ink transition hover:bg-sand lg:hidden"
           >
@@ -33,35 +38,55 @@ export function Header({ storeName = 'Radhakrishna Panchadhatu' }: { storeName?:
           </button>
           <Link
             href="/"
-            className="font-serif text-xl font-semibold tracking-[0.04em] text-ink sm:text-2xl"
+            className="whitespace-nowrap shrink-0 font-serif text-lg font-semibold tracking-[0.04em] text-ink sm:text-xl"
           >
             {storeName}
           </Link>
         </div>
 
-        {/* Zone 2: Concise single-row primary links */}
-        <nav aria-label="Main navigation" className="hidden items-center gap-6 text-sm font-medium text-muted lg:flex">
+        {/* Concise single-row primary links */}
+        <nav
+          aria-label="Main navigation"
+          className="hidden items-center gap-3.5 text-[13px] font-medium text-muted lg:flex xl:gap-5 xl:text-sm"
+        >
           {NAV_LINKS.map((item) => (
-            <Link key={item.href} href={item.href} className="transition hover:text-gold-deep">
+            <Link
+              key={item.href}
+              href={item.href}
+              className="whitespace-nowrap shrink-0 transition hover:text-gold-deep"
+            >
               {item.label}
             </Link>
           ))}
         </nav>
 
-        {/* Zone 3: Search, Wishlist, Account, Cart trigger */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5">
-          <Link
-            href="/search"
-            aria-label="Search jewellery"
-            className="rounded-full p-2 text-ink transition hover:bg-sand hover:text-gold-deep"
+        {/* Live Search, Wishlist, Account, Cart trigger */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="hidden md:block">
+            <HeaderSearch variant="desktop" />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setMobileSearchOpen((prev) => !prev);
+              setMobileOpen(false);
+            }}
+            aria-label={mobileSearchOpen ? 'Close search bar' : 'Search jewellery'}
+            aria-expanded={mobileSearchOpen}
+            className="rounded-full p-2 text-ink transition hover:bg-sand hover:text-gold-deep md:hidden"
           >
-            <Search className="h-[18px] w-[18px]" />
-          </Link>
+            {mobileSearchOpen ? (
+              <X className="h-[18px] w-[18px]" />
+            ) : (
+              <Search className="h-[18px] w-[18px]" />
+            )}
+          </button>
 
           <Link
             href="/wishlist"
             aria-label={`Wishlist (${wishlist.length})`}
-            className="relative rounded-full p-2 text-ink transition hover:bg-sand hover:text-gold-deep"
+            className="relative shrink-0 rounded-full p-2 text-ink transition hover:bg-sand hover:text-gold-deep"
           >
             <Heart className="h-[18px] w-[18px]" />
             {wishlist.length > 0 && (
@@ -74,7 +99,7 @@ export function Header({ storeName = 'Radhakrishna Panchadhatu' }: { storeName?:
           <Link
             href="/account"
             aria-label={user ? 'Customer account' : 'Sign in'}
-            className="hidden rounded-full p-2 text-ink transition hover:bg-sand hover:text-gold-deep sm:inline-flex"
+            className="hidden shrink-0 rounded-full p-2 text-ink transition hover:bg-sand hover:text-gold-deep sm:inline-flex"
           >
             <User className="h-[18px] w-[18px]" />
           </Link>
@@ -83,7 +108,7 @@ export function Header({ storeName = 'Radhakrishna Panchadhatu' }: { storeName?:
             type="button"
             onClick={() => setCartDrawerOpen(true)}
             aria-label={`Open shopping cart (${cartCount} items)`}
-            className="relative inline-flex items-center gap-2 rounded-full border border-line bg-sand/70 px-3.5 py-1.5 text-sm font-medium text-ink transition hover:border-gold hover:text-gold-deep"
+            className="relative inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-sand/70 px-3 py-1.5 text-sm font-medium text-ink transition hover:border-gold hover:text-gold-deep whitespace-nowrap"
           >
             <ShoppingBag className="h-4 w-4 text-gold-deep" />
             <span className="hidden sm:inline">Cart</span>
@@ -92,12 +117,23 @@ export function Header({ storeName = 'Radhakrishna Panchadhatu' }: { storeName?:
 
           <Link
             href="/admin"
-            className="hidden rounded-full bg-ink px-3.5 py-1.5 text-xs font-medium tracking-wide text-surface transition hover:bg-gold-deep md:inline-flex"
+            className="hidden shrink-0 whitespace-nowrap rounded-full bg-ink px-3 py-1.5 text-xs font-medium tracking-wide text-surface transition hover:bg-gold-deep lg:inline-flex"
           >
             Admin
           </Link>
         </div>
       </div>
+
+      {/* Mobile expandable search bar with live dropdown */}
+      {mobileSearchOpen && (
+        <div className="border-t border-line bg-surface px-4 py-3 md:hidden">
+          <HeaderSearch
+            variant="mobile"
+            autoFocus
+            onNavigate={() => setMobileSearchOpen(false)}
+          />
+        </div>
+      )}
 
       {/* Mobile slide-down drawer */}
       {mobileOpen && (

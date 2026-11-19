@@ -10,11 +10,13 @@ import React, {
 } from 'react';
 import { onAuthStateChanged, signInWithPopup, signOut, type User } from 'firebase/auth';
 import {
-  auth,
-  googleAuthProvider,
+  getFirebaseAuth,
+  getGoogleAuthProvider,
+  initFirebaseClient,
   syncUserProfileToFirestore,
   testFirestoreConnection,
   toggleWishlistInFirestore,
+  type FirebaseClientConfig,
 } from '@/lib/firebase/client';
 
 export interface CartItem {
@@ -77,7 +79,13 @@ const CART_STORAGE_KEY = 'rkp_cart_v1';
 const WISHLIST_STORAGE_KEY = 'rkp_wishlist_v1';
 const COOKIE_STORAGE_KEY = 'rkp_cookie_consent_v1';
 
-export function StoreProvider({ children }: { children: React.ReactNode }) {
+export function StoreProvider({
+  children,
+  firebaseConfig = null,
+}: {
+  children: React.ReactNode;
+  firebaseConfig?: FirebaseClientConfig | null;
+}) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [wishlist, setWishlist] = useState<string[]>([]);
@@ -211,8 +219,37 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  const fbApiKey = firebaseConfig?.apiKey || '';
+  const fbProjectId = firebaseConfig?.projectId || '';
+  const fbAppId = firebaseConfig?.appId || '';
+  const fbAuthDomain = firebaseConfig?.authDomain || '';
+  const fbDatabaseId = firebaseConfig?.firestoreDatabaseId || '';
+  const fbStorageBucket = firebaseConfig?.storageBucket || '';
+  const fbMessagingSenderId = firebaseConfig?.messagingSenderId || '';
+  const fbMeasurementId = firebaseConfig?.measurementId || '';
+
   // Firebase Auth listener
   useEffect(() => {
+    const resolvedConfig: FirebaseClientConfig | null =
+      fbApiKey && fbProjectId && fbAppId
+        ? {
+            apiKey: fbApiKey,
+            projectId: fbProjectId,
+            appId: fbAppId,
+            authDomain: fbAuthDomain || undefined,
+            firestoreDatabaseId: fbDatabaseId || undefined,
+            storageBucket: fbStorageBucket || undefined,
+            messagingSenderId: fbMessagingSenderId || undefined,
+            measurementId: fbMeasurementId || undefined,
+          }
+        : null;
+
+    const { auth } = initFirebaseClient(resolvedConfig);
+    if (!auth) {
+      setAuthLoading(false);
+      return;
+    }
+
     const unsub = onAuthStateChanged(auth, (nextUser) => {
       setUser(nextUser);
       setAuthLoading(false);
@@ -221,7 +258,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
     });
     return () => unsub();
-  }, []);
+  }, [
+    fbApiKey,
+    fbProjectId,
+    fbAppId,
+    fbAuthDomain,
+    fbDatabaseId,
+    fbStorageBucket,
+    fbMessagingSenderId,
+    fbMeasurementId,
+  ]);
 
   const addToCart = useCallback((item: CartItem) => {
     setCart((prev) => {
@@ -286,7 +332,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signInWithGoogle = useCallback(async () => {
-    const result = await signInWithPopup(auth, googleAuthProvider);
+    const activeAuth = getFirebaseAuth();
+    const provider = getGoogleAuthProvider();
+    if (!activeAuth || !provider) {
+      throw new Error(
+        'Customer Google Sign-In is not configured for this environment yet. Guest checkout and order tracking remain available.'
+      );
+    }
+
+    const result = await signInWithPopup(activeAuth, provider);
     if (result.user) {
       await testFirestoreConnection();
       await syncUserProfileToFirestore({
@@ -298,7 +352,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOutUser = useCallback(async () => {
-    await signOut(auth);
+    const activeAuth = getFirebaseAuth();
+    if (activeAuth) {
+      await signOut(activeAuth);
+    }
   }, []);
 
   const promptInstallPwa = useCallback(async () => {

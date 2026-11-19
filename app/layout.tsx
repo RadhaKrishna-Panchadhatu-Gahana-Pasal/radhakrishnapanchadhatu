@@ -9,6 +9,7 @@ import { Footer } from '@/components/layout/footer';
 import { Header } from '@/components/layout/header';
 import { OfflineIndicator } from '@/components/pwa/offline-indicator';
 import { StoreProvider } from '@/components/providers/store-provider';
+import { getFirebaseClientConfig } from '@/lib/firebase/server-config';
 import { getSiteBaseUrl } from '@/lib/seo/metadata';
 import { getStore } from '@/lib/store/repository';
 
@@ -79,6 +80,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const store = getStore();
+  const firebaseConfig = getFirebaseClientConfig();
   const activeAnnouncements = store.announcements
     .filter((a) => a.enabled)
     .sort((a, b) => a.sortOrder - b.sortOrder);
@@ -86,7 +88,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${cormorant.variable} ${manrope.variable}`}>
       <body>
-        <StoreProvider>
+        <StoreProvider firebaseConfig={firebaseConfig}>
           <div className="flex min-h-screen flex-col bg-sand text-ink">
             <AnnouncementBar announcements={activeAnnouncements} />
             <Header storeName={store.settings.storeName} />

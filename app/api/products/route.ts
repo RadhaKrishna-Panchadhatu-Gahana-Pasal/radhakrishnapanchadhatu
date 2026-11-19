@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ product, reviews });
   }
 
-  const products = queryPublicProducts({
+  const allProducts = queryPublicProducts({
     q: searchParams.get('q') ?? undefined,
     category: searchParams.get('category') ?? undefined,
     material: searchParams.get('material') ?? undefined,
@@ -29,5 +29,10 @@ export async function GET(req: NextRequest) {
     sort: (searchParams.get('sort') as 'latest' | 'price-asc' | 'price-desc' | 'featured') ?? 'latest',
   });
 
-  return NextResponse.json({ products });
+  const limitParam = searchParams.get('limit');
+  const limit = limitParam ? Number.parseInt(limitParam, 10) : NaN;
+  const products =
+    Number.isFinite(limit) && limit > 0 ? allProducts.slice(0, limit) : allProducts;
+
+  return NextResponse.json({ products, total: allProducts.length });
 }
