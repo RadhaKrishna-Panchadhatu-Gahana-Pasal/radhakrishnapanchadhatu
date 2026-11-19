@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Brand colours */
+    --background: #F7F5F0;
+    --surface: #FFFFFF;
+    --primary-text: #25231F;
+    --secondary-text: #77736B;
+    --gold-accent: #B08A45;
+    --gold-deep: #80612F;
+    --border: #E9E5DC;
+    --success: #26734D;
+    --warning: #A66B18;
+    --error: #B43B35;
+
+    /* shadcn/ui compat */
+    --radius: 0.5rem;
+    --card: 0 0% 100%;
+    --card-foreground: 24 9% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 24 9% 14%;
+    --primary: 38 46% 48%;
+    --primary-foreground: 40 50% 97%;
+    --secondary: 36 10% 92%;
+    --secondary-foreground: 24 9% 14%;
+    --muted: 36 10% 92%;
+    --muted-foreground: 25 10% 46%;
+    --accent: 36 10% 92%;
+    --accent-foreground: 24 9% 14%;
+    --destructive: 3 55% 46%;
+    --destructive-foreground: 0 0% 98%;
+    --input: 33 20% 90%;
+    --ring: 38 46% 48%;
+
+    /* Announcement bar marquee speed */
+    --marquee-duration: 30s;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--primary-text);
+    font-family: var(--font-body), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading), Georgia, serif;
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .container-store {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .text-gold {
+    color: var(--gold-accent);
+  }
+
+  .bg-gold {
+    background-color: var(--gold-accent);
+  }
+
+  .border-gold {
+    border-color: var(--gold-accent);
+  }
+}
