@@ -1,74 +1,29 @@
-export const storeConfig = {
-  brandName: 'Radhakrishna Panchadhatu',
-  currency: 'NPR',
-  locale: 'Nepal',
-};
+import Link from 'next/link';
 
-export const storefrontHighlights = [
-  {
-    title: 'Admin-managed content',
-    description: 'Products, pricing, photos, and banners are designed to be controlled from the CMS rather than source code.',
-    icon: '◎',
-  },
-  {
-    title: 'Premium storefront',
-    description: 'The layout is structured for a luxury feel while remaining mobile-first and flexible for business updates.',
-    icon: '✦',
-  },
-  {
-    title: 'Inventory ready',
-    description: 'The product and order flow is organized for stock, variants, and shipping rules to be added later.',
-    icon: '▣',
-  },
-];
-
-export const adminStats = [
-  { label: 'Orders', value: '128' },
-  { label: 'Revenue', value: 'NPR 94K' },
-  { label: 'Low stock', value: '09' },
-  { label: 'Reviews', value: '42' },
-];
-
-export const placeholderProducts = [
-  {
-    name: 'Panchadhatu Necklace',
-    slug: 'panchadhatu-necklace',
-    category: 'Panchadhatu',
-    material: 'Panchadhatu',
-    price: '4200',
-    stock: 'In stock',
-  },
-  {
-    name: 'Steel Bangle Set',
-    slug: 'steel-bangle-set',
-    category: 'Steel jewellery',
-    material: 'Steel',
-    price: '2600',
-    stock: 'Low stock',
-  },
-  {
-    name: 'Statement Ring',
-    slug: 'statement-ring',
-    category: 'Rings',
-    material: 'Mixed',
-    price: '3900',
-    stock: 'In stock',
-  },
-  {
-    name: 'Traditional Earrings',
-    slug: 'traditional-earrings',
-    category: 'Earrings',
-    material: 'Panchadhatu',
-    price: '3100',
-    stock: 'New arrival',
-  },
-];
-
-export const adminSections = [
-  { label: 'Products', value: '24' },
-  { label: 'Categories', value: '08' },
-  { label: 'Orders', value: '12' },
-  { label: 'Customers', value: '143' },
-];
-
-export const emptyStateMessage = 'This section is ready for admin-controlled content. Add product details, prices, and photos from the dashboard later.';
+export default function NotFound() {
+  return (
+    <div className="container-shell py-20">
+      <div className="card mx-auto max-w-xl p-8 text-center">
+        <p className="text-xs uppercase tracking-[0.2em] text-gold">404</p>
+        <h1 className="section-title mt-2">Page not found</h1>
+        <p className="mt-3 text-muted">
+          The page or item you are looking for is not available yet.
+        </p>
+        <div className="mt-6 flex justify-center gap-3">
+          <Link
+            href="/"
+            className="rounded-full bg-gold px-6 py-2.5 text-sm font-medium text-white hover:bg-[#9a7734]"
+          >
+            Back to home
+          </Link>
+          <Link
+            href="/catalog"
+            className="rounded-full border border-line bg-white px-6 py-2.5 text-sm font-medium text-ink hover:border-gold hover:text-gold"
+          >
+            View catalog
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}

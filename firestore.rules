@@ -1,0 +1,298 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'itsuniquebhattarai@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isValidCategory(data) {
+      return data.keys().hasAll(['id', 'name', 'slug', 'isActive', 'sortOrder']) &&
+        isValidId(data.id) &&
+        isValidString(data.name, 1, 120) &&
+        isValidString(data.slug, 1, 120) &&
+        data.isActive is bool &&
+        data.sortOrder is int;
+    }
+
+    function isValidProduct(data) {
+      return data.keys().hasAll(['id', 'name', 'slug', 'sku', 'material', 'categoryId', 'stockQuantity', 'status']) &&
+        isValidId(data.id) &&
+        isValidString(data.name, 1, 160) &&
+        isValidString(data.slug, 1, 160) &&
+        isValidString(data.sku, 1, 64) &&
+        isValidString(data.material, 1, 80) &&
+        isValidId(data.categoryId) &&
+        data.stockQuantity is int && data.stockQuantity >= 0 &&
+        data.status in ['DRAFT', 'PUBLISHED', 'ARCHIVED'];
+    }
+
+    function isValidOrderCreate(data) {
+      return data.keys().hasAll([
+          'id', 'orderNumber', 'userId', 'trackingToken', 'customerName',
+          'customerPhone', 'items', 'subtotalPaisa', 'discountPaisa',
+          'deliveryFeePaisa', 'totalPaisa', 'paymentMethod', 'paymentStatus',
+          'fulfilmentStatus', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'orderNumber', 'userId', 'trackingToken', 'customerName',
+          'customerPhone', 'customerEmail', 'address', 'items', 'subtotalPaisa',
+          'discountPaisa', 'couponCode', 'deliveryFeePaisa', 'totalPaisa',
+          'paymentMethod', 'paymentStatus', 'fulfilmentStatus', 'courierName',
+          'trackingReference', 'timeline', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.id) &&
+        isValidString(data.orderNumber, 3, 64) &&
+        data.userId == request.auth.uid &&
+        isValidId(data.trackingToken) &&
+        isValidString(data.customerName, 1, 120) &&
+        isValidString(data.customerPhone, 6, 30) &&
+        data.items is list && data.items.size() >= 1 && data.items.size() <= 50 &&
+        data.subtotalPaisa is int && data.subtotalPaisa >= 0 &&
+        data.discountPaisa is int && data.discountPaisa >= 0 &&
+        data.deliveryFeePaisa is int && data.deliveryFeePaisa >= 0 &&
+        data.totalPaisa is int && data.totalPaisa >= 0 &&
+        data.paymentMethod in ['ESEWA', 'KHALTI', 'FONEPAY', 'COD'] &&
+        data.paymentStatus == 'PENDING' &&
+        data.fulfilmentStatus == 'ORDER_PLACED' &&
+        data.createdAt == request.time &&
+        data.updatedAt == request.time;
+    }
+
+    function isValidTrackingSummary(data, token) {
+      return data.keys().hasAll([
+          'trackingToken', 'orderNumber', 'fulfilmentStatus',
+          'paymentStatus', 'totalPaisa', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'trackingToken', 'orderNumber', 'fulfilmentStatus', 'paymentStatus',
+          'totalPaisa', 'courierName', 'trackingReference', 'timeline', 'updatedAt'
+        ]) &&
+        data.trackingToken == token &&
+        isValidString(data.orderNumber, 3, 64) &&
+        isValidString(data.fulfilmentStatus, 3, 40) &&
+        isValidString(data.paymentStatus, 3, 40) &&
+        data.totalPaisa is int && data.totalPaisa >= 0;
+    }
+
+    function isValidReviewCreate(data) {
+      return data.keys().hasAll([
+          'id', 'productId', 'orderId', 'userId', 'customerName',
+          'rating', 'content', 'status', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'productId', 'productName', 'orderId', 'orderNumber', 'userId',
+          'customerName', 'rating', 'title', 'content', 'verifiedPurchase',
+          'status', 'createdAt'
+        ]) &&
+        isValidId(data.id) &&
+        isValidId(data.productId) &&
+        isValidId(data.orderId) &&
+        data.userId == request.auth.uid &&
+        isValidString(data.customerName, 1, 120) &&
+        data.rating is int && data.rating >= 1 && data.rating <= 5 &&
+        isValidString(data.content, 5, 2000) &&
+        data.status == 'PENDING' &&
+        data.createdAt == request.time;
+    }
+
+    function isValidCustomOrderCreate(data) {
+      return data.keys().hasAll([
+          'id', 'userId', 'referenceCode', 'customerName', 'customerPhone',
+          'preferredMaterial', 'description', 'consentAccepted', 'status', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'userId', 'referenceCode', 'customerName', 'customerPhone',
+          'preferredMaterial', 'budgetNote', 'description', 'referenceImageUrl',
+          'consentAccepted', 'status', 'createdAt'
+        ]) &&
+        isValidId(data.id) &&
+        data.userId == request.auth.uid &&
+        isValidString(data.referenceCode, 3, 64) &&
+        isValidString(data.customerName, 1, 120) &&
+        isValidString(data.customerPhone, 6, 30) &&
+        isValidString(data.preferredMaterial, 1, 80) &&
+        isValidString(data.description, 5, 2000) &&
+        data.consentAccepted == true &&
+        data.status == 'NEW' &&
+        data.createdAt == request.time;
+    }
+
+    // Startup connection test document
+    match /test/connection {
+      allow get: if true;
+    }
+
+    // Admin registry
+    match /admins/{uid} {
+      allow get: if isOwner(uid) || isAdmin();
+      allow list, create, update, delete: if isAdmin() && isValidId(uid);
+    }
+
+    // Public catalog & CMS collections (admin-managed)
+    match /categories/{categoryId} {
+      allow get: if isValidId(categoryId) && (existing().isActive == true || isAdmin());
+      allow list: if existing().isActive == true || isAdmin();
+      allow create, update: if isAdmin() && isValidId(categoryId) && isValidCategory(incoming());
+      allow delete: if isAdmin() && isValidId(categoryId);
+    }
+
+    match /products/{productId} {
+      allow get: if isValidId(productId) && (existing().status == 'PUBLISHED' || isAdmin());
+      allow list: if existing().status == 'PUBLISHED' || isAdmin();
+      allow create, update: if isAdmin() && isValidId(productId) && isValidProduct(incoming());
+      allow delete: if isAdmin() && isValidId(productId);
+    }
+
+    match /banners/{bannerId} {
+      allow get: if isValidId(bannerId) && (existing().enabled == true || isAdmin());
+      allow list: if existing().enabled == true || isAdmin();
+      allow create, update, delete: if isAdmin() && isValidId(bannerId);
+    }
+
+    match /announcements/{announcementId} {
+      allow get: if isValidId(announcementId) && (existing().enabled == true || isAdmin());
+      allow list: if existing().enabled == true || isAdmin();
+      allow create, update, delete: if isAdmin() && isValidId(announcementId);
+    }
+
+    match /homepageSections/{sectionId} {
+      allow get: if isValidId(sectionId) && (existing().enabled == true || isAdmin());
+      allow list: if existing().enabled == true || isAdmin();
+      allow create, update, delete: if isAdmin() && isValidId(sectionId);
+    }
+
+    match /pages/{slug} {
+      allow get: if isValidId(slug);
+      allow list: if true;
+      allow create, update, delete: if isAdmin() && isValidId(slug);
+    }
+
+    match /settings/{settingId} {
+      allow get: if isValidId(settingId);
+      allow list: if false;
+      allow create, update, delete: if isAdmin() && isValidId(settingId);
+    }
+
+    match /shippingZones/{zoneId} {
+      allow get: if isValidId(zoneId);
+      allow list: if true;
+      allow create, update, delete: if isAdmin() && isValidId(zoneId);
+    }
+
+    match /coupons/{couponId} {
+      allow get: if isValidId(couponId) && (existing().active == true || isAdmin());
+      allow list: if existing().active == true || isAdmin();
+      allow create, update, delete: if isAdmin() && isValidId(couponId);
+    }
+
+    // Isolated customer PII & personal state
+    match /users/{userId}/private/{docId} {
+      allow get: if isValidId(userId) && isValidId(docId) && (isOwner(userId) || isAdmin());
+      allow list: if isOwner(userId) || isAdmin();
+      allow create, update: if isValidId(userId) && isValidId(docId) && (isOwner(userId) || isAdmin()) &&
+        incoming().userId == userId &&
+        isValidString(incoming().fullName, 1, 120);
+      allow delete: if isAdmin() && isValidId(userId) && isValidId(docId);
+    }
+
+    match /users/{userId}/wishlist/{productId} {
+      allow get: if isValidId(userId) && isValidId(productId) && isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create, update, delete: if isValidId(userId) && isValidId(productId) && isOwner(userId);
+    }
+
+    // Orders (strictly owner or admin)
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+      allow list: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow create: if isValidId(orderId) && isSignedIn() && isValidOrderCreate(incoming());
+      allow update: if isValidId(orderId) && (
+        isAdmin() ||
+        (isOwner(existing().userId) &&
+         existing().fulfilmentStatus == 'ORDER_PLACED' &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['fulfilmentStatus', 'updatedAt']) &&
+         incoming().fulfilmentStatus == 'CANCELLED' &&
+         incoming().updatedAt == request.time)
+      );
+      allow delete: if false;
+    }
+
+    // Non-PII public tracking lookup by unguessable token only (no listing allowed)
+    match /orderTracking/{trackingToken} {
+      allow get: if isValidId(trackingToken);
+      allow list: if false;
+      allow create: if isValidId(trackingToken) && (isAdmin() || isSignedIn()) && isValidTrackingSummary(incoming(), trackingToken);
+      allow update: if isValidId(trackingToken) && isAdmin() && isValidTrackingSummary(incoming(), trackingToken);
+      allow delete: if false;
+    }
+
+    // Verified-purchase product reviews
+    match /reviews/{reviewId} {
+      allow get: if isValidId(reviewId) && (existing().status == 'APPROVED' || isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+      allow list: if existing().status == 'APPROVED' || isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow create: if isValidId(reviewId) && isSignedIn() && isValidReviewCreate(incoming()) &&
+        exists(/databases/$(database)/documents/orders/$(incoming().orderId)) &&
+        get(/databases/$(database)/documents/orders/$(incoming().orderId)).data.userId == request.auth.uid &&
+        get(/databases/$(database)/documents/orders/$(incoming().orderId)).data.fulfilmentStatus == 'DELIVERED';
+      allow update, delete: if isValidId(reviewId) && isAdmin();
+    }
+
+    // Custom design requests
+    match /customOrderRequests/{requestId} {
+      allow get: if isValidId(requestId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+      allow list: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow create: if isValidId(requestId) && isSignedIn() && isValidCustomOrderCreate(incoming());
+      allow update: if isValidId(requestId) && isAdmin();
+      allow delete: if false;
+    }
+
+    // Inventory ledger & append-only audit logs (admin only)
+    match /inventoryMovements/{movementId} {
+      allow get, create: if isValidId(movementId) && isAdmin();
+      allow list: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /adminAuditLogs/{logId} {
+      allow get, create: if isValidId(logId) && isAdmin();
+      allow list: if isAdmin();
+      allow update, delete: if false;
+    }
+  }
+}

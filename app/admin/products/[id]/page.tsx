@@ -1,35 +1,42 @@
 import { notFound } from 'next/navigation';
-import ProductForm from '@/components/admin/product-form';
-import { placeholderProducts } from '@/lib/storefront-data';
+import { ProductForm } from '@/components/admin/product-form';
+import { nprFromPaisa } from '@/lib/store/money';
+import { getStore } from '@/lib/store/repository';
+
+export const dynamic = 'force-dynamic';
 
 export default function EditProductPage({ params }: { params: { id: string } }) {
-  const product = placeholderProducts.find(
-    (item) => item.id === Number(params.id) || item.slug === params.id,
+  const product = getStore().products.find(
+    (p) => p.id === params.id || p.slug === params.id
   );
-
   if (!product) {
     notFound();
   }
 
   return (
-    <div className="container-shell py-8">
-      <ProductForm
-        mode="edit"
-        initialValues={{
-          name: product.name,
-          slug: product.slug,
-          category: product.category,
-          material: product.material,
-          price: product.price,
-          compareAtPrice: '',
-          stock: product.stock,
-          status: product.status,
-          featured: false,
-          newArrival: false,
-          description: 'Admin-managed product description pending content entry.',
-          imageUrl: '',
-        }}
-      />
-    </div>
+    <ProductForm
+      mode="edit"
+      initialValues={{
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        sku: product.sku,
+        category: product.categoryName,
+        material: product.material,
+        price: product.pricePaisa !== null ? String(nprFromPaisa(product.pricePaisa)) : '',
+        compareAtPrice:
+          product.compareAtPaisa !== null ? String(nprFromPaisa(product.compareAtPaisa)) : '',
+        stock: String(product.stockQuantity),
+        status: product.status,
+        productType: product.productType,
+        featured: product.isFeatured,
+        newArrival: product.isNewArrival,
+        shortDescription: product.shortDescription,
+        description: product.description,
+        careInstructions: product.careInstructions,
+        deliveryNote: product.deliveryNote,
+        imageUrl: product.images[0]?.url || '/images/product-necklace.jpg',
+      }}
+    />
   );
 }

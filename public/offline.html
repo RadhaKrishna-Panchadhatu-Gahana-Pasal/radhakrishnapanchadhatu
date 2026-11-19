@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offline — Radhakrishna Panchadhatu</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #F7F5F0;
+      color: #25231F;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: 24px;
+    }
+    .card {
+      max-width: 440px;
+      width: 100%;
+      background: #FFFFFF;
+      border: 1px solid #E9E5DC;
+      border-radius: 16px;
+      padding: 32px;
+      text-align: center;
+    }
+    h1 {
+      font-size: 24px;
+      margin: 0 0 12px;
+      font-weight: 600;
+    }
+    p {
+      margin: 0 0 24px;
+      color: #77736B;
+      line-height: 1.6;
+      font-size: 15px;
+    }
+    a, button {
+      display: inline-block;
+      background: #B08A45;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 9999px;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>You are currently offline</h1>
+    <p>
+      Checkout, payment verification, and live stock checks require an active internet connection.
+      Previously visited storefront pages remain available once you reconnect.
+    </p>
+    <button onclick="window.location.reload()">Try again</button>
+  </div>
+</body>
+</html>

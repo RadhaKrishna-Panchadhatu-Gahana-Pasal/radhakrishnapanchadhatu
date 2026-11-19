@@ -1,0 +1,235 @@
+{
+  "entities": {
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authorized store administrator record keyed by Firebase Auth UID.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "format": "email", "maxLength": 200 },
+        "role": { "type": "string", "enum": ["OWNER", "MANAGER", "ORDER_STAFF", "CONTENT_EDITOR", "REVIEWER"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role", "createdAt"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Jewellery product category managed in the CMS.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "slug": { "type": "string", "minLength": 1, "maxLength": 120, "pattern": "^[a-z0-9-]+$" },
+        "description": { "type": "string", "maxLength": 1000 },
+        "imageUrl": { "type": "string", "maxLength": 500 },
+        "isActive": { "type": "boolean" },
+        "sortOrder": { "type": "number" }
+      },
+      "required": ["id", "name", "slug", "isActive", "sortOrder"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Panchadhatu or steel jewellery product with variants and inventory.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "slug": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "^[a-z0-9-]+$" },
+        "sku": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "material": { "type": "string", "maxLength": 80 },
+        "categoryId": { "type": "string", "maxLength": 128 },
+        "pricePaisa": { "type": "number" },
+        "stockQuantity": { "type": "number" },
+        "status": { "type": "string", "enum": ["DRAFT", "PUBLISHED", "ARCHIVED"] },
+        "isFeatured": { "type": "boolean" },
+        "isNewArrival": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "slug", "sku", "material", "categoryId", "stockQuantity", "status"]
+    },
+    "UserPrivateProfile": {
+      "title": "UserPrivateProfile",
+      "description": "Private PII profile isolated under users/{userId}/private/profile.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "fullName": { "type": "string", "maxLength": 120 },
+        "email": { "type": "string", "maxLength": 200 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "fullName", "updatedAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer jewellery order with separate payment and fulfilment states.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "orderNumber": { "type": "string", "maxLength": 64 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "trackingToken": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 120 },
+        "customerPhone": { "type": "string", "maxLength": 30 },
+        "subtotalPaisa": { "type": "number" },
+        "discountPaisa": { "type": "number" },
+        "deliveryFeePaisa": { "type": "number" },
+        "totalPaisa": { "type": "number" },
+        "paymentMethod": { "type": "string", "enum": ["ESEWA", "KHALTI", "FONEPAY", "COD"] },
+        "paymentStatus": { "type": "string", "enum": ["PENDING", "INITIATED", "PROCESSING", "PAID", "FAILED", "CANCELLED", "EXPIRED", "REFUNDED", "PARTIALLY_REFUNDED", "MANUAL_REVIEW"] },
+        "fulfilmentStatus": { "type": "string", "enum": ["ORDER_PLACED", "ORDER_RECEIVED", "PROCESSING", "READY_TO_DISPATCH", "DISPATCHED", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED", "RETURN_REQUESTED", "RETURNED"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "orderNumber", "userId", "trackingToken", "customerName", "customerPhone", "totalPaisa", "paymentMethod", "paymentStatus", "fulfilmentStatus", "createdAt", "updatedAt"]
+    },
+    "OrderTrackingSummary": {
+      "title": "OrderTrackingSummary",
+      "description": "Non-PII tracking projection accessible only by exact unguessable trackingToken.",
+      "type": "object",
+      "properties": {
+        "trackingToken": { "type": "string", "maxLength": 128 },
+        "orderNumber": { "type": "string", "maxLength": 64 },
+        "fulfilmentStatus": { "type": "string", "maxLength": 40 },
+        "paymentStatus": { "type": "string", "maxLength": 40 },
+        "totalPaisa": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["trackingToken", "orderNumber", "fulfilmentStatus", "paymentStatus", "totalPaisa", "updatedAt"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Verified-purchase product review subject to moderation.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "productId": { "type": "string", "maxLength": 128 },
+        "orderId": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 120 },
+        "rating": { "type": "number" },
+        "title": { "type": "string", "maxLength": 160 },
+        "content": { "type": "string", "maxLength": 2000 },
+        "status": { "type": "string", "enum": ["PENDING", "APPROVED", "REJECTED"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "productId", "orderId", "userId", "customerName", "rating", "content", "status", "createdAt"]
+    },
+    "CustomOrderRequest": {
+      "title": "CustomOrderRequest",
+      "description": "Custom jewellery design request submitted by customer.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "referenceCode": { "type": "string", "maxLength": 64 },
+        "customerName": { "type": "string", "maxLength": 120 },
+        "customerPhone": { "type": "string", "maxLength": 30 },
+        "preferredMaterial": { "type": "string", "maxLength": 80 },
+        "description": { "type": "string", "maxLength": 2000 },
+        "consentAccepted": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["NEW", "REVIEWING", "QUOTED", "CLOSED"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "referenceCode", "customerName", "customerPhone", "description", "consentAccepted", "status", "createdAt"]
+    },
+    "CmsConfig": {
+      "title": "CmsConfig",
+      "description": "CMS banners, announcements, homepage sections, pages, shipping zones, and store settings.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Append-only administrative audit log entry.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "actorUid": { "type": "string", "maxLength": 128 },
+        "action": { "type": "string", "maxLength": 120 },
+        "entityType": { "type": "string", "maxLength": 80 },
+        "entityId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "actorUid", "action", "entityType", "entityId", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/admins/{uid}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Admin role records keyed by Firebase Auth UID."
+    },
+    "/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/Category" },
+      "description": "Product categories."
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Storefront jewellery products."
+    },
+    "/banners/{bannerId}": {
+      "schema": { "$ref": "#/entities/CmsConfig" },
+      "description": "Promotional banners."
+    },
+    "/announcements/{announcementId}": {
+      "schema": { "$ref": "#/entities/CmsConfig" },
+      "description": "Top announcement bar messages."
+    },
+    "/homepageSections/{sectionId}": {
+      "schema": { "$ref": "#/entities/CmsConfig" },
+      "description": "Ordered homepage CMS sections."
+    },
+    "/pages/{slug}": {
+      "schema": { "$ref": "#/entities/CmsConfig" },
+      "description": "Editable storefront content and legal pages."
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/CmsConfig" },
+      "description": "Store settings and payment/shipping toggles."
+    },
+    "/shippingZones/{zoneId}": {
+      "schema": { "$ref": "#/entities/CmsConfig" },
+      "description": "Nepal province delivery fees and thresholds."
+    },
+    "/coupons/{couponId}": {
+      "schema": { "$ref": "#/entities/CmsConfig" },
+      "description": "Discount coupon definitions."
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": { "$ref": "#/entities/UserPrivateProfile" },
+      "description": "Isolated private customer PII."
+    },
+    "/users/{userId}/wishlist/{productId}": {
+      "schema": { "$ref": "#/entities/CmsConfig" },
+      "description": "Customer saved wishlist product references."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Customer orders."
+    },
+    "/orderTracking/{trackingToken}": {
+      "schema": { "$ref": "#/entities/OrderTrackingSummary" },
+      "description": "Public non-PII tracking lookup keyed by unguessable token."
+    },
+    "/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/Review" },
+      "description": "Verified-purchase product reviews."
+    },
+    "/customOrderRequests/{requestId}": {
+      "schema": { "$ref": "#/entities/CustomOrderRequest" },
+      "description": "Custom design requests."
+    },
+    "/inventoryMovements/{movementId}": {
+      "schema": { "$ref": "#/entities/CmsConfig" },
+      "description": "Stock movement ledger (admin only)."
+    },
+    "/adminAuditLogs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Append-only admin audit logs."
+    }
+  }
+}

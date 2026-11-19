@@ -1,36 +1,47 @@
 'use client';
 
-import { useState } from 'react';
-import type { FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 
 export type ProductFormValues = {
+  id?: string;
   name: string;
   slug: string;
+  sku: string;
   category: string;
   material: string;
   price: string;
   compareAtPrice: string;
   stock: string;
-  status: 'Draft' | 'Published' | 'Archived';
+  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  productType: 'READY_STOCK' | 'MADE_TO_ORDER' | 'CUSTOM_ORDER';
   featured: boolean;
   newArrival: boolean;
+  shortDescription: string;
   description: string;
+  careInstructions: string;
+  deliveryNote: string;
   imageUrl: string;
 };
 
 const defaultValues: ProductFormValues = {
   name: '',
   slug: '',
-  category: 'Panchadhatu',
+  sku: '',
+  category: 'Necklaces',
   material: 'Panchadhatu',
   price: '',
   compareAtPrice: '',
-  stock: '0',
-  status: 'Draft',
+  stock: '10',
+  status: 'PUBLISHED',
+  productType: 'READY_STOCK',
   featured: false,
-  newArrival: false,
+  newArrival: true,
+  shortDescription: '',
   description: '',
-  imageUrl: '',
+  careInstructions: 'Wipe gently with a soft cotton cloth after wear.',
+  deliveryNote: 'Dispatched from Butwal across Nepal.',
+  imageUrl: '/images/product-necklace.jpg',
 };
 
 export function ProductForm({
@@ -40,50 +51,101 @@ export function ProductForm({
   initialValues?: Partial<ProductFormValues>;
   mode?: 'create' | 'edit';
 }) {
+  const router = useRouter();
   const [form, setForm] = useState<ProductFormValues>({ ...defaultValues, ...initialValues });
-  const [saved, setSaved] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   const updateField = (field: keyof ProductFormValues, value: string | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value as never }));
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSaved(true);
+    setSubmitting(true);
+    setFeedback(null);
+
+    try {
+      const endpoint =
+        mode === 'edit' && form.id
+          ? `/api/admin/products/${form.id}`
+          : '/api/admin/products';
+      const method = mode === 'edit' ? 'PATCH' : 'POST';
+
+      const res = await fetch(endpoint, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name,
+          slug: form.slug || form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          sku: form.sku || undefined,
+          categoryName: form.category,
+          material: form.material,
+          priceNpr: form.price,
+          compareAtNpr: form.compareAtPrice,
+          stockQuantity: Number(form.stock) || 0,
+          status: form.status,
+          productType: form.productType,
+          isFeatured: form.featured,
+          isNewArrival: form.newArrival,
+          shortDescription: form.shortDescription,
+          description: form.description,
+          careInstructions: form.careInstructions,
+          deliveryNote: form.deliveryNote,
+          imageUrl: form.imageUrl,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setFeedback({ type: 'err', text: data.error || 'Could not save product.' });
+      } else {
+        setFeedback({
+          type: 'ok',
+          text: mode === 'edit' ? 'Product updated.' : 'Product created.',
+        });
+        router.push('/admin/products');
+        router.refresh();
+      }
+    } catch {
+      setFeedback({ type: 'err', text: 'Network error saving product.' });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="card p-6 md:p-8">
       <div className="mb-8 flex items-center justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-gold">Products</p>
-          <h1 className="mt-2 text-3xl font-semibold text-ink">
-            {mode === 'edit' ? 'Edit product' : 'Add new product'}
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-deep">
+            Products
+          </p>
+          <h1 className="mt-2 font-serif text-3xl font-semibold text-ink">
+            {mode === 'edit' ? 'Edit Product' : 'Add New Product'}
           </h1>
         </div>
-        <span className="rounded-full border border-line bg-[#faf8f5] px-3 py-1 text-xs uppercase tracking-[0.18em] text-muted">
-          Admin form
-        </span>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-5 md:grid-cols-2">
         <label className="block text-sm font-medium text-ink">
-          Product name
+          Product Name *
           <input
+            required
             value={form.name}
-            onChange={(event) => updateField('name', event.target.value)}
-            className="mt-2 w-full rounded-xl border border-line bg-[#faf8f5] px-4 py-3 outline-none transition focus:border-gold"
-            placeholder="Panchadhatu necklace"
+            onChange={(e) => updateField('name', e.target.value)}
+            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+            placeholder="Sacred Mandala Panchadhatu Pendant"
           />
         </label>
 
         <label className="block text-sm font-medium text-ink">
-          Slug
+          Slug *
           <input
+            required
             value={form.slug}
-            onChange={(event) => updateField('slug', event.target.value)}
-            className="mt-2 w-full rounded-xl border border-line bg-[#faf8f5] px-4 py-3 outline-none transition focus:border-gold"
-            placeholder="panchadhatu-necklace"
+            onChange={(e) => updateField('slug', e.target.value)}
+            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+            placeholder="sacred-mandala-pendant"
           />
         </label>
 
@@ -91,15 +153,15 @@ export function ProductForm({
           Category
           <select
             value={form.category}
-            onChange={(event) => updateField('category', event.target.value)}
-            className="mt-2 w-full rounded-xl border border-line bg-[#faf8f5] px-4 py-3 outline-none transition focus:border-gold"
+            onChange={(e) => updateField('category', e.target.value)}
+            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
           >
             <option>Panchadhatu</option>
-            <option>Steel jewellery</option>
-            <option>Rings</option>
+            <option>Steel Jewellery</option>
             <option>Necklaces</option>
+            <option>Rings</option>
             <option>Earrings</option>
-            <option>Bracelets</option>
+            <option>Bracelets &amp; Bangles</option>
           </select>
         </label>
 
@@ -107,13 +169,12 @@ export function ProductForm({
           Material
           <select
             value={form.material}
-            onChange={(event) => updateField('material', event.target.value)}
-            className="mt-2 w-full rounded-xl border border-line bg-[#faf8f5] px-4 py-3 outline-none transition focus:border-gold"
+            onChange={(e) => updateField('material', e.target.value)}
+            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
           >
-            <option>Panchadhatu</option>
-            <option>Steel</option>
-            <option>Mixed</option>
-            <option>Gold plated</option>
+            <option value="Panchadhatu">Panchadhatu</option>
+            <option value="Steel">Steel</option>
+            <option value="Mixed">Mixed</option>
           </select>
         </label>
 
@@ -121,98 +182,133 @@ export function ProductForm({
           Price (NPR)
           <input
             type="number"
+            min="0"
+            step="1"
             value={form.price}
-            onChange={(event) => updateField('price', event.target.value)}
-            className="mt-2 w-full rounded-xl border border-line bg-[#faf8f5] px-4 py-3 outline-none transition focus:border-gold"
+            onChange={(e) => updateField('price', e.target.value)}
+            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
             placeholder="4200"
           />
         </label>
 
         <label className="block text-sm font-medium text-ink">
-          Compare-at price (optional)
+          Compare-at Price (NPR, optional)
           <input
             type="number"
+            min="0"
+            step="1"
             value={form.compareAtPrice}
-            onChange={(event) => updateField('compareAtPrice', event.target.value)}
-            className="mt-2 w-full rounded-xl border border-line bg-[#faf8f5] px-4 py-3 outline-none transition focus:border-gold"
-            placeholder="5200"
+            onChange={(e) => updateField('compareAtPrice', e.target.value)}
+            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+            placeholder="4800"
           />
         </label>
 
         <label className="block text-sm font-medium text-ink">
-          Stock count
+          Stock Quantity
           <input
             type="number"
+            min="0"
             value={form.stock}
-            onChange={(event) => updateField('stock', event.target.value)}
-            className="mt-2 w-full rounded-xl border border-line bg-[#faf8f5] px-4 py-3 outline-none transition focus:border-gold"
-            placeholder="12"
+            onChange={(e) => updateField('stock', e.target.value)}
+            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
           />
         </label>
 
         <label className="block text-sm font-medium text-ink">
-          Status
+          Publishing Status
           <select
             value={form.status}
-            onChange={(event) => updateField('status', event.target.value as ProductFormValues['status'])}
-            className="mt-2 w-full rounded-xl border border-line bg-[#faf8f5] px-4 py-3 outline-none transition focus:border-gold"
+            onChange={(e) => updateField('status', e.target.value as ProductFormValues['status'])}
+            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
           >
-            <option value="Draft">Draft</option>
-            <option value="Published">Published</option>
-            <option value="Archived">Archived</option>
+            <option value="PUBLISHED">Published</option>
+            <option value="DRAFT">Draft</option>
+            <option value="ARCHIVED">Archived</option>
           </select>
         </label>
 
-        <label className="flex items-center gap-3 rounded-xl border border-line bg-[#faf8f5] p-4 text-sm font-medium text-ink">
+        <label className="block text-sm font-medium text-ink">
+          Product Type
+          <select
+            value={form.productType}
+            onChange={(e) =>
+              updateField('productType', e.target.value as ProductFormValues['productType'])
+            }
+            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+          >
+            <option value="READY_STOCK">Ready Stock</option>
+            <option value="MADE_TO_ORDER">Made to Order</option>
+            <option value="CUSTOM_ORDER">Custom Order</option>
+          </select>
+        </label>
+
+        <label className="block text-sm font-medium text-ink">
+          Primary Image Path or URL
+          <input
+            value={form.imageUrl}
+            onChange={(e) => updateField('imageUrl', e.target.value)}
+            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+            placeholder="/images/product-necklace.jpg"
+          />
+        </label>
+
+        <label className="flex items-center gap-3 rounded-xl border border-line bg-[#FAF8F4] p-4 text-sm font-medium text-ink">
           <input
             type="checkbox"
             checked={form.featured}
-            onChange={(event) => updateField('featured', event.target.checked)}
-            className="h-4 w-4 rounded border-line text-gold"
+            onChange={(e) => updateField('featured', e.target.checked)}
+            className="h-4 w-4 accent-gold"
           />
-          Featured product
+          Featured on Homepage
         </label>
 
-        <label className="flex items-center gap-3 rounded-xl border border-line bg-[#faf8f5] p-4 text-sm font-medium text-ink">
+        <label className="flex items-center gap-3 rounded-xl border border-line bg-[#FAF8F4] p-4 text-sm font-medium text-ink">
           <input
             type="checkbox"
             checked={form.newArrival}
-            onChange={(event) => updateField('newArrival', event.target.checked)}
-            className="h-4 w-4 rounded border-line text-gold"
+            onChange={(e) => updateField('newArrival', e.target.checked)}
+            className="h-4 w-4 accent-gold"
           />
-          Mark as new arrival
+          Mark as New Arrival
         </label>
 
         <label className="block text-sm font-medium text-ink md:col-span-2">
-          Product description
+          Product Description
           <textarea
+            rows={4}
             value={form.description}
-            onChange={(event) => updateField('description', event.target.value)}
-            className="mt-2 min-h-28 w-full rounded-xl border border-line bg-[#faf8f5] px-4 py-3 outline-none transition focus:border-gold"
-            placeholder="Add a premium product description for the storefront."
-          />
-        </label>
-
-        <label className="block text-sm font-medium text-ink md:col-span-2">
-          Product image URL or media key
-          <input
-            value={form.imageUrl}
-            onChange={(event) => updateField('imageUrl', event.target.value)}
-            className="mt-2 w-full rounded-xl border border-line bg-[#faf8f5] px-4 py-3 outline-none transition focus:border-gold"
-            placeholder="https://cdn.example.com/product.jpg"
+            onChange={(e) => updateField('description', e.target.value)}
+            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+            placeholder="Describe alloy craftsmanship, dimensions, and ceremonial or daily styling."
           />
         </label>
       </div>
 
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
-        <div className="text-sm text-muted">
-          {saved ? 'Draft saved in admin queue. Connect this to the database later.' : 'Ready for backend integration.'}
-        </div>
+      {feedback && (
+        <p
+          className={`mt-5 text-xs font-medium ${
+            feedback.type === 'ok' ? 'text-success' : 'text-danger'
+          }`}
+        >
+          {feedback.text}
+        </p>
+      )}
+
+      <div className="mt-6 flex justify-end gap-3">
+        <button
+          type="button"
+          onClick={() => router.push('/admin/products')}
+          className="rounded-full border border-line px-5 py-2.5 text-sm font-medium text-ink"
+        >
+          Cancel
+        </button>
         <button
           type="submit"
-          className="rounded-full bg-gold px-6 py-3 font-medium text-white transition hover:bg-[#9a7734]"
+          disabled={submitting}
+          className="rounded-full bg-gold px-6 py-2.5 text-sm font-medium text-white hover:bg-gold-deep disabled:opacity-50"
         >
-          {mode === 'edit' ? 'Update product' : 'Save product'}
+          {submitting ? 'Saving...' : mode === 'edit' ? 'Update Product' : 'Create Product'}
         </button>
       </div>
     </form>
