@@ -1,14 +1,15 @@
 name: build-check
 
 # Temporary diagnostic workflow: reproduces `bun run build` (prisma generate &&
-# next build) on the runner so the real compiler error is readable.
+# next build) on the runner. On failure it pushes the build log to the
+# `ci-build-log` branch so the compiler error is readable from outside Actions.
 on:
   push:
     paths:
       - '.github/workflows/build-check.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -20,8 +21,21 @@ jobs:
       APP_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
       - uses: oven-sh/setup-bun@v2
       - name: Install
         run: bun install --frozen-lockfile
       - name: Build
-        run: bun run build
+        run: |
+          set -o pipefail
+          bun run build 2>&1 | tee build.log
+      - name: Publish build log
+        if: failure()
+        run: |
+          git config user.email "ci@example.com"
+          git config user.name "ci"
+          git checkout -b ci-build-log
+          git add -f build.log
+          git commit -m "ci: build log"
+          git push -f origin ci-build-log
