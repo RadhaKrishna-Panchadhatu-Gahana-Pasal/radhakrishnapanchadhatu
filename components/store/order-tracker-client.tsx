@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { PackageCheck, Search, Truck } from 'lucide-react';
 import { formatNPR } from '@/lib/store/money';
+import { saveTrackedOrderToken } from '@/lib/store/order-history';
 
 export interface PublicOrderTrackingView {
   orderNumber: string;
@@ -58,6 +59,7 @@ export function OrderTrackerClient({
         setError(data.error || 'No matching order found.');
       } else {
         setOrder(data.order);
+        saveTrackedOrderToken(data.order?.trackingToken);
       }
     } catch {
       setError('Unable to look up order.');

@@ -7,6 +7,7 @@ import { CheckCircle2, Lock, ShieldCheck } from 'lucide-react';
 import { AddressAutocomplete } from '@/components/maps/address-autocomplete';
 import { useStore } from '@/components/providers/store-provider';
 import { formatNPR } from '@/lib/store/money';
+import { saveTrackedOrderToken } from '@/lib/store/order-history';
 import type { PaymentMethod } from '@/lib/store/types';
 
 const NEPAL_PROVINCES = [
@@ -143,6 +144,7 @@ export function CheckoutClient({
         return;
       }
 
+      saveTrackedOrderToken(data.trackingToken);
       if (data.paymentMethod === 'COD') {
         clearCart();
         router.push(
@@ -179,6 +181,7 @@ export function CheckoutClient({
       if (!res.ok) {
         setError(data.error || 'Payment verification failed.');
       } else {
+        saveTrackedOrderToken(data.trackingToken);
         clearCart();
         router.push(
           `/order/success?orderNumber=${encodeURIComponent(data.orderNumber)}&token=${encodeURIComponent(
