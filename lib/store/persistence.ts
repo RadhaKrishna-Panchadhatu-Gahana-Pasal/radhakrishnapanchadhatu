@@ -3,6 +3,8 @@ import path from 'path';
 import type { StoreDatabase } from './repository';
 import { isDatabaseConfigured, readStoreSnapshot, writeStoreSnapshot } from './postgres';
 
+export { isDatabaseConfigured };
+
 /**
  * Durable storage for the shop database.
  *

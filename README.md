@@ -105,7 +105,7 @@ The whole shop — catalogue, CMS content, orders, enquiries, reviews, audit log
 
 - **With `DATABASE_URL` set** (production, and any serverless host): the snapshot is read from Postgres once per server start and written back after every mutation. `lib/store/postgres.ts` creates the `store_state` table on first use, so there is no migration step.
 - **Without `DATABASE_URL`** (plain local development): `.data/store.json` is loaded and rewritten atomically — override the path with `STORE_DATA_FILE`.
-- Reads are synchronous from an in-memory cache; `hydrateStore()` fills it from `instrumentation.ts` and from `app/layout.tsx` before anything renders.
+- Reads are synchronous from an in-memory cache; `hydrateStore()` fills it from `app/layout.tsx` (every page) and from the store-touching API routes before they read or write.
 - Mutating API routes `await flushStore()` before responding, so a serverless instance is never frozen between a change and its save.
 - If Postgres is configured but unreachable the app keeps serving seed data and **blocks writes**, rather than overwriting live orders with seed data.
 

@@ -5,8 +5,7 @@ name: build-check
 # `ci-build-log` branch so the compiler error is readable from outside Actions.
 on:
   push:
-    paths:
-      - '.github/workflows/build-check.yml'
+    branches: [main]
 
 permissions:
   contents: write

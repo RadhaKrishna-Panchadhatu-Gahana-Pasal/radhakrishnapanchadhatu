@@ -1,7 +1,8 @@
 import type { MetadataRoute } from 'next';
-import { getStore } from '@/lib/store/repository';
+import { getStore, hydrateStore } from '@/lib/store/repository';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  await hydrateStore();
   const store = getStore();
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
