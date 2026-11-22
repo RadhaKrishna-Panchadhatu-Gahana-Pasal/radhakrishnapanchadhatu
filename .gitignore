@@ -55,3 +55,6 @@ pnpm-debug.log*
 # Misc
 *.pem
 .turbo
+
+# Local toolchain (portable Bun + Node used for previews)
+.tools/
