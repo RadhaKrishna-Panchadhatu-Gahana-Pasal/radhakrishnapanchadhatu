@@ -144,15 +144,26 @@ export function resolvePaymentProviders(input: {
   ];
 }
 
-/** Server-side entry point: reads env credentials and current stage. */
+/**
+ * Server-side entry point: reads env credentials and current stage.
+ *
+ * A provider only goes LIVE in production when its credentials exist AND
+ * PAYMENTS_ALLOW_LIVE is explicitly "true". The switch exists because the
+ * gateway handshake is still simulated: without it, adding Fonepay keys would
+ * show customers "Live" on a flow that never contacts Fonepay.
+ */
 export function getPaymentProviderStates(settings: PaymentSettings): PaymentProviderState[] {
+  const liveApproved = process.env.PAYMENTS_ALLOW_LIVE === 'true';
+
   return resolvePaymentProviders({
     stage: getDeploymentStage(),
     settings,
     configured: {
-      esewa: Boolean(process.env.ESEWA_PRODUCT_CODE && process.env.ESEWA_SECRET_KEY),
-      khalti: Boolean(process.env.KHALTI_SECRET_KEY),
-      fonepay: Boolean(process.env.FONEPAY_MERCHANT_ID && process.env.FONEPAY_SECRET_KEY),
+      esewa:
+        liveApproved && Boolean(process.env.ESEWA_PRODUCT_CODE && process.env.ESEWA_SECRET_KEY),
+      khalti: liveApproved && Boolean(process.env.KHALTI_SECRET_KEY),
+      fonepay:
+        liveApproved && Boolean(process.env.FONEPAY_MERCHANT_ID && process.env.FONEPAY_SECRET_KEY),
     },
   });
 }

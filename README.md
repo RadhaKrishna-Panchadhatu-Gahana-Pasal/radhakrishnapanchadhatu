@@ -161,7 +161,10 @@ Before Fonepay is enabled for real customers:
 
 1. Add the Fonepay merchant credentials to the environment,
 2. replace the simulated step with a server-initiated Fonepay payment request,
-3. verify Fonepay's response signature server-side before marking an order paid.
+3. verify Fonepay's response signature server-side before marking an order paid,
+4. set `PAYMENTS_ALLOW_LIVE=true`.
+
+Step 4 is deliberately separate: credentials alone never make a method Live, so a half-finished integration cannot start advertising itself to customers.
 
 Cash on Delivery works end to end today, including per-province availability.
 
