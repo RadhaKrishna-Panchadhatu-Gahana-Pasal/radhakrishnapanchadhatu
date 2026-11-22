@@ -142,7 +142,7 @@ export function StoreMap({
 
   if (!apiKey || mapsQuotaExceeded) {
     return (
-      <div className="flex h-[360px] w-full flex-col justify-between rounded-2xl border border-line bg-[#EFECE5] p-6">
+      <div className="flex h-[360px] w-full flex-col justify-between rounded-2xl border border-line bg-elevated p-6">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-gold-deep">
             Store Showroom · Butwal
@@ -174,7 +174,7 @@ export function StoreMap({
   }
 
   return (
-    <div className="h-[360px] w-full overflow-hidden rounded-2xl border border-line bg-[#EFECE5]">
+    <div className="h-[360px] w-full overflow-hidden rounded-2xl border border-line bg-elevated">
       <APIProvider apiKey={apiKey} language="en" region="NP">
         <StoreLocationMarker
           storeName={storeName}

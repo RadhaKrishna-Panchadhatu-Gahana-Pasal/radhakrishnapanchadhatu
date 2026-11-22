@@ -43,7 +43,7 @@ export function AnnouncementBar({ announcements }: { announcements: Announcement
             type="button"
             onClick={() => setDismissedIds((prev) => [...prev, active.id])}
             aria-label="Dismiss announcement"
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-sand/70 transition hover:text-white"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-sand/70 transition hover:text-gold-deep"
           >
             <X className="h-3.5 w-3.5" />
           </button>

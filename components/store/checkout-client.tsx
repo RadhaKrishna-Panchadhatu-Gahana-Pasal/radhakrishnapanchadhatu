@@ -319,7 +319,7 @@ export function CheckoutClient({
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Aarav Bhandari"
-                    className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+                    className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
                   />
                 </label>
 
@@ -330,7 +330,7 @@ export function CheckoutClient({
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="984-XXXXXXX"
-                    className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+                    className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
                   />
                 </label>
 
@@ -341,7 +341,7 @@ export function CheckoutClient({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+                    className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
                   />
                 </label>
 
@@ -350,7 +350,7 @@ export function CheckoutClient({
                   <select
                     value={province}
                     onChange={(e) => setProvince(e.target.value)}
-                    className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+                    className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
                   >
                     {NEPAL_PROVINCES.map((p) => (
                       <option key={p} value={p}>
@@ -367,7 +367,7 @@ export function CheckoutClient({
                     value={district}
                     onChange={(e) => setDistrict(e.target.value)}
                     placeholder="Rupandehi / Kathmandu"
-                    className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+                    className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
                   />
                 </label>
 
@@ -378,7 +378,7 @@ export function CheckoutClient({
                     value={municipality}
                     onChange={(e) => setMunicipality(e.target.value)}
                     placeholder="Butwal Sub-Metropolitan City"
-                    className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+                    className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
                   />
                 </label>
 
@@ -389,7 +389,7 @@ export function CheckoutClient({
                     value={ward}
                     onChange={(e) => setWard(e.target.value)}
                     placeholder="11"
-                    className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+                    className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
                   />
                 </label>
 
@@ -400,7 +400,7 @@ export function CheckoutClient({
                     value={street}
                     onChange={(e) => setStreet(e.target.value)}
                     placeholder="Yogikuti, Santichowk"
-                    className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+                    className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
                   />
                 </label>
 
@@ -410,7 +410,7 @@ export function CheckoutClient({
                     value={landmark}
                     onChange={(e) => setLandmark(e.target.value)}
                     placeholder="Near chowk, temple, or school"
-                    className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+                    className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
                   />
                 </label>
 
@@ -421,7 +421,7 @@ export function CheckoutClient({
                     value={deliveryInstructions}
                     onChange={(e) => setDeliveryInstructions(e.target.value)}
                     placeholder="Preferred call timing or gift note"
-                    className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+                    className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
                   />
                 </label>
               </div>
@@ -571,7 +571,7 @@ export function CheckoutClient({
                 value={couponInput}
                 onChange={(e) => setCouponInput(e.target.value)}
                 placeholder="Promo code (e.g. WELCOME10)"
-                className="flex-1 rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-xs uppercase outline-none focus:border-gold"
+                className="flex-1 rounded-xl border border-line bg-field px-3 py-2 text-xs uppercase outline-none focus:border-gold"
               />
               <button
                 type="button"

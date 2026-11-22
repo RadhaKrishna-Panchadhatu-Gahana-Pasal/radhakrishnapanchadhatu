@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Heart, Menu, Search, ShoppingBag, User, X } from 'lucide-react';
 import { HeaderSearch } from '@/components/layout/header-search';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { useStore } from '@/components/providers/store-provider';
 
 const NAV_LINKS = [
@@ -36,11 +38,26 @@ export function Header({ storeName = 'Radhakrishna Panchadhatu' }: { storeName?:
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
-          <Link
-            href="/"
-            className="whitespace-nowrap shrink-0 font-serif text-lg font-semibold tracking-[0.04em] text-ink sm:text-xl"
-          >
-            {storeName}
+          <Link href="/" aria-label={`${storeName} home`} className="flex shrink-0 items-center gap-2">
+            <Image
+              src="/brand/app-icon-light.png"
+              alt=""
+              width={512}
+              height={512}
+              priority
+              className="h-8 w-8 shrink-0 dark:hidden"
+            />
+            <Image
+              src="/brand/app-icon-dark.png"
+              alt=""
+              width={512}
+              height={512}
+              priority
+              className="hidden h-8 w-8 shrink-0 dark:block"
+            />
+            <span className="hidden whitespace-nowrap font-serif text-lg font-semibold tracking-[0.04em] text-ink sm:inline xl:text-xl">
+              {storeName}
+            </span>
           </Link>
         </div>
 
@@ -103,6 +120,8 @@ export function Header({ storeName = 'Radhakrishna Panchadhatu' }: { storeName?:
           >
             <User className="h-[18px] w-[18px]" />
           </Link>
+
+          <ThemeToggle />
 
           <button
             type="button"

@@ -35,7 +35,7 @@ export default function WishlistPage() {
       {loading ? (
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((n) => (
-            <div key={n} className="aspect-[3/4] animate-pulse rounded-2xl bg-[#EFECE5]" />
+            <div key={n} className="aspect-[3/4] animate-pulse rounded-2xl bg-elevated" />
           ))}
         </div>
       ) : savedProducts.length === 0 ? (

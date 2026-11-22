@@ -78,7 +78,7 @@ export default function AdminInventoryPage() {
                         [p.id]: Math.max(0, Number(e.target.value)),
                       }))
                     }
-                    className="w-24 rounded-lg border border-line bg-[#FAF8F4] px-2.5 py-1.5 text-sm tabular-nums outline-none focus:border-gold"
+                    className="w-24 rounded-lg border border-line bg-field px-2.5 py-1.5 text-sm tabular-nums outline-none focus:border-gold"
                   />
                 </td>
                 <td className="px-4 py-3 text-right">

@@ -153,7 +153,7 @@ export function ProductDetailClient({
       {/* Contiguous Purchase Module */}
       <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
         <div>
-          <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[2rem] border border-line bg-[#EFECE5]">
+          <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[2rem] border border-line bg-elevated">
             <Image
               src={mainImage.url}
               alt={mainImage.alt || product.name}

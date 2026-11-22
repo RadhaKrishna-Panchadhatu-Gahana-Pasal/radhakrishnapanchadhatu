@@ -9,6 +9,7 @@ import { Footer } from '@/components/layout/footer';
 import { Header } from '@/components/layout/header';
 import { OfflineIndicator } from '@/components/pwa/offline-indicator';
 import { StoreProvider } from '@/components/providers/store-provider';
+import { ThemeProvider } from '@/components/providers/theme-provider';
 import { getFirebaseClientConfig } from '@/lib/firebase/server-config';
 import { getSiteBaseUrl } from '@/lib/seo/metadata';
 import { getStore, hydrateStore } from '@/lib/store/repository';
@@ -30,10 +31,16 @@ const manrope = Manrope({
 });
 
 export const viewport: Viewport = {
-  themeColor: '#B08A45',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#F7F5F0' },
+    { media: '(prefers-color-scheme: dark)', color: '#12110F' },
+  ],
   width: 'device-width',
   initialScale: 1,
 };
+
+// Runs before the first paint so the saved theme is applied without a flash.
+const themeBootstrap = `(function(){try{var p=localStorage.getItem('rkp_theme')||'system';var d=p==='dark'||(p==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;if(d){r.classList.add('dark');}r.style.colorScheme=d?'dark':'light';}catch(e){}})();`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteBaseUrl()),
@@ -50,7 +57,7 @@ export const metadata: Metadata = {
     title: 'Radhakrishna',
   },
   icons: {
-    icon: '/icon.svg',
+    icon: [{ url: '/icon.png', type: 'image/png', sizes: '256x256' }],
     apple: '/apple-touch-icon.png',
   },
   openGraph: {
@@ -89,19 +96,26 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     .sort((a, b) => a.sortOrder - b.sortOrder);
 
   return (
-    <html lang="en" className={`${cormorant.variable} ${manrope.variable}`}>
+    <html
+      lang="en"
+      className={`${cormorant.variable} ${manrope.variable}`}
+      suppressHydrationWarning
+    >
       <body>
-        <StoreProvider firebaseConfig={firebaseConfig}>
-          <div className="flex min-h-screen flex-col bg-sand text-ink">
-            <AnnouncementBar announcements={activeAnnouncements} />
-            <Header storeName={store.settings.storeName} />
-            <main className="flex-1">{children}</main>
-            <Footer settings={store.settings} />
-          </div>
-          <CartDrawer />
-          <CookieConsentBanner />
-          <OfflineIndicator />
-        </StoreProvider>
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+        <ThemeProvider>
+          <StoreProvider firebaseConfig={firebaseConfig}>
+            <div className="flex min-h-screen flex-col bg-sand text-ink">
+              <AnnouncementBar announcements={activeAnnouncements} />
+              <Header storeName={store.settings.storeName} />
+              <main className="flex-1">{children}</main>
+              <Footer settings={store.settings} />
+            </div>
+            <CartDrawer />
+            <CookieConsentBanner />
+            <OfflineIndicator />
+          </StoreProvider>
+        </ThemeProvider>
         <Analytics />
       </body>
     </html>

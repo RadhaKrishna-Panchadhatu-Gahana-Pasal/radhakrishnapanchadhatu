@@ -79,7 +79,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[2rem] border border-line bg-[#EFECE5] shadow-soft lg:aspect-[5/4]">
+          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[2rem] border border-line bg-elevated shadow-soft lg:aspect-[5/4]">
             <Image
               src={heroSection?.imageUrl || heroBanner?.imageUrl || '/images/hero-panchadhatu.jpg'}
               alt={heroBanner?.imageAlt || 'Handcrafted Panchadhatu jewellery'}
@@ -176,7 +176,7 @@ export default function HomePage() {
       {storySection && (
         <section className="container-shell py-16">
           <div className="grid overflow-hidden rounded-[2rem] border border-line bg-surface shadow-soft lg:grid-cols-2">
-            <div className="relative min-h-[300px] bg-[#EFECE5]">
+            <div className="relative min-h-[300px] bg-elevated">
               <Image
                 src={storySection.imageUrl || promoBanner?.imageUrl || '/images/banner-craftsmanship.jpg'}
                 alt={storySection.title}

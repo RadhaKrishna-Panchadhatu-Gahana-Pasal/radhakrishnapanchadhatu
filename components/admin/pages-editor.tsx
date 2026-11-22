@@ -57,7 +57,7 @@ export default function AdminPagesEditor({ initialPages }: { initialPages: Conte
                 <input
                   value={page.title}
                   onChange={(e) => updateLocal(page.slug, { title: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+                  className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
                 />
               </label>
               <label className="text-xs font-medium text-ink">
@@ -65,7 +65,7 @@ export default function AdminPagesEditor({ initialPages }: { initialPages: Conte
                 <input
                   value={page.summary}
                   onChange={(e) => updateLocal(page.slug, { summary: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+                  className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
                 />
               </label>
             </div>
@@ -76,7 +76,7 @@ export default function AdminPagesEditor({ initialPages }: { initialPages: Conte
                 rows={4}
                 value={page.content}
                 onChange={(e) => updateLocal(page.slug, { content: e.target.value })}
-                className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+                className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
               />
             </label>
 

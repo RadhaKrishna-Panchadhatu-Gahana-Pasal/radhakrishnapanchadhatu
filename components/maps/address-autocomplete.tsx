@@ -156,7 +156,7 @@ function PlacesAutocompleteField({
           onChange={(e) => setQueryText(e.target.value)}
           onFocus={() => suggestions.length > 0 && setOpen(true)}
           placeholder="Search Nepal area, tole, or landmark (e.g. Yogikuti, Butwal)"
-          className="w-full rounded-xl border border-line bg-[#FAF8F4] py-2.5 pl-10 pr-4 text-sm text-ink outline-none transition focus:border-gold"
+          className="w-full rounded-xl border border-line bg-field py-2.5 pl-10 pr-4 text-sm text-ink outline-none transition focus:border-gold"
         />
       </div>
       {open && suggestions.length > 0 && (

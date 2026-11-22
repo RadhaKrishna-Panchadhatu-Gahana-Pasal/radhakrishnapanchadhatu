@@ -230,7 +230,7 @@ export default function AdminOrdersPage() {
                 <select
                   value={fulfilmentStatus}
                   onChange={(e) => setFulfilmentStatus(e.target.value as FulfilmentStatus)}
-                  className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+                  className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
                 >
                   {FULFILMENT_STATUSES.map((st) => (
                     <option key={st} value={st}>
@@ -245,7 +245,7 @@ export default function AdminOrdersPage() {
                 <select
                   value={paymentStatus}
                   onChange={(e) => setPaymentStatus(e.target.value as PaymentStatus)}
-                  className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+                  className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
                 >
                   {PAYMENT_STATUSES.map((pst) => (
                     <option key={pst} value={pst}>
@@ -261,7 +261,7 @@ export default function AdminOrdersPage() {
                   value={courierName}
                   onChange={(e) => setCourierName(e.target.value)}
                   placeholder="Nepal Can Move / Upaya"
-                  className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+                  className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
                 />
               </label>
 
@@ -271,7 +271,7 @@ export default function AdminOrdersPage() {
                   value={trackingReference}
                   onChange={(e) => setTrackingReference(e.target.value)}
                   placeholder="NCM-..."
-                  className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+                  className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
                 />
               </label>
 
@@ -281,7 +281,7 @@ export default function AdminOrdersPage() {
                   value={publicNote}
                   onChange={(e) => setPublicNote(e.target.value)}
                   placeholder="Shown on customer tracking timeline..."
-                  className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+                  className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
                 />
               </label>
 
@@ -291,7 +291,7 @@ export default function AdminOrdersPage() {
                   value={internalNote}
                   onChange={(e) => setInternalNote(e.target.value)}
                   placeholder="Internal packing or COD reconciliation note..."
-                  className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+                  className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
                 />
               </label>
             </div>

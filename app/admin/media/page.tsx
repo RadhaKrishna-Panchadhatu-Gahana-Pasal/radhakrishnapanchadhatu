@@ -120,7 +120,7 @@ export default function AdminMediaPage() {
             const file = event.target.files?.[0];
             if (file) void handleUpload(file);
           }}
-          className="mt-3 block w-full cursor-pointer rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-xs text-ink file:mr-3 file:rounded-full file:border-0 file:bg-gold file:px-4 file:py-2 file:text-xs file:font-medium file:text-white hover:file:bg-gold-deep"
+          className="mt-3 block w-full cursor-pointer rounded-xl border border-line bg-field px-3 py-2 text-xs text-ink file:mr-3 file:rounded-full file:border-0 file:bg-gold file:px-4 file:py-2 file:text-xs file:font-medium file:text-white hover:file:bg-gold-deep"
         />
         {uploading && <p className="mt-2 text-xs text-muted">Uploading…</p>}
         <p className="mt-2 text-[11px] text-muted">
@@ -135,19 +135,19 @@ export default function AdminMediaPage() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Asset title"
-          className="rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+          className="rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
         />
         <input
           required
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="/images/... or https://..."
-          className="rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+          className="rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
         />
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value as MediaCategory)}
-          className="rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+          className="rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
         >
           <option value="PRODUCT">Product</option>
           <option value="BANNER">Banner</option>

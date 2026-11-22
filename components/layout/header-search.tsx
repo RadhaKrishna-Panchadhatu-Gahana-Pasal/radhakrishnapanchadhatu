@@ -310,7 +310,7 @@ export function HeaderSearch({
                           isHighlighted ? 'bg-sand' : 'hover:bg-sand/60'
                         }`}
                       >
-                        <div className="relative h-14 w-12 shrink-0 overflow-hidden rounded-lg border border-line bg-[#EFECE5]">
+                        <div className="relative h-14 w-12 shrink-0 overflow-hidden rounded-lg border border-line bg-elevated">
                           <Image
                             src={primaryImage?.url || '/images/product-necklace.jpg'}
                             alt={primaryImage?.alt || product.name}

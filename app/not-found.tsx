@@ -12,13 +12,13 @@ export default function NotFound() {
         <div className="mt-6 flex justify-center gap-3">
           <Link
             href="/"
-            className="rounded-full bg-gold px-6 py-2.5 text-sm font-medium text-white hover:bg-[#9a7734]"
+            className="rounded-full bg-gold px-6 py-2.5 text-sm font-medium text-white hover:bg-gold-deep"
           >
             Back to home
           </Link>
           <Link
             href="/catalog"
-            className="rounded-full border border-line bg-white px-6 py-2.5 text-sm font-medium text-ink hover:border-gold hover:text-gold"
+            className="rounded-full border border-line bg-surface px-6 py-2.5 text-sm font-medium text-ink hover:border-gold hover:text-gold"
           >
             View catalog
           </Link>

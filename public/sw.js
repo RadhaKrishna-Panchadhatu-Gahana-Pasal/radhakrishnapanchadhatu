@@ -1,5 +1,5 @@
 const CACHE_VERSION = 'rkp-store-v1';
-const STATIC_ASSETS = ['/', '/catalog', '/offline.html', '/icon.svg', '/pwa-192x192.png'];
+const STATIC_ASSETS = ['/', '/catalog', '/offline.html', '/icon.png', '/pwa-192x192.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

@@ -135,7 +135,7 @@ export function ProductForm({
             required
             value={form.name}
             onChange={(e) => updateField('name', e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+            className="mt-1.5 w-full rounded-xl border border-line bg-field px-4 py-2.5 text-sm outline-none focus:border-gold"
             placeholder="Sacred Mandala Panchadhatu Pendant"
           />
         </label>
@@ -146,7 +146,7 @@ export function ProductForm({
             required
             value={form.slug}
             onChange={(e) => updateField('slug', e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+            className="mt-1.5 w-full rounded-xl border border-line bg-field px-4 py-2.5 text-sm outline-none focus:border-gold"
             placeholder="sacred-mandala-pendant"
           />
         </label>
@@ -156,7 +156,7 @@ export function ProductForm({
           <select
             value={form.category}
             onChange={(e) => updateField('category', e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+            className="mt-1.5 w-full rounded-xl border border-line bg-field px-4 py-2.5 text-sm outline-none focus:border-gold"
           >
             {categories.map((name) => <option key={name}>{name}</option>)}
           </select>
@@ -167,7 +167,7 @@ export function ProductForm({
           <select
             value={form.material}
             onChange={(e) => updateField('material', e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+            className="mt-1.5 w-full rounded-xl border border-line bg-field px-4 py-2.5 text-sm outline-none focus:border-gold"
           >
             <option value="Panchadhatu">Panchadhatu</option>
             <option value="Steel">Steel</option>
@@ -183,7 +183,7 @@ export function ProductForm({
             step="1"
             value={form.price}
             onChange={(e) => updateField('price', e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+            className="mt-1.5 w-full rounded-xl border border-line bg-field px-4 py-2.5 text-sm outline-none focus:border-gold"
             placeholder="4200"
           />
         </label>
@@ -196,7 +196,7 @@ export function ProductForm({
             step="1"
             value={form.compareAtPrice}
             onChange={(e) => updateField('compareAtPrice', e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+            className="mt-1.5 w-full rounded-xl border border-line bg-field px-4 py-2.5 text-sm outline-none focus:border-gold"
             placeholder="4800"
           />
         </label>
@@ -208,7 +208,7 @@ export function ProductForm({
             min="0"
             value={form.stock}
             onChange={(e) => updateField('stock', e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+            className="mt-1.5 w-full rounded-xl border border-line bg-field px-4 py-2.5 text-sm outline-none focus:border-gold"
           />
         </label>
 
@@ -217,7 +217,7 @@ export function ProductForm({
           <select
             value={form.status}
             onChange={(e) => updateField('status', e.target.value as ProductFormValues['status'])}
-            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+            className="mt-1.5 w-full rounded-xl border border-line bg-field px-4 py-2.5 text-sm outline-none focus:border-gold"
           >
             <option value="PUBLISHED">Published</option>
             <option value="DRAFT">Draft</option>
@@ -232,7 +232,7 @@ export function ProductForm({
             onChange={(e) =>
               updateField('productType', e.target.value as ProductFormValues['productType'])
             }
-            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+            className="mt-1.5 w-full rounded-xl border border-line bg-field px-4 py-2.5 text-sm outline-none focus:border-gold"
           >
             <option value="READY_STOCK">Ready Stock</option>
             <option value="MADE_TO_ORDER">Made to Order</option>
@@ -245,12 +245,12 @@ export function ProductForm({
           <input
             value={form.imageUrl}
             onChange={(e) => updateField('imageUrl', e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+            className="mt-1.5 w-full rounded-xl border border-line bg-field px-4 py-2.5 text-sm outline-none focus:border-gold"
             placeholder="/images/product-necklace.jpg"
           />
         </label>
 
-        <label className="flex items-center gap-3 rounded-xl border border-line bg-[#FAF8F4] p-4 text-sm font-medium text-ink">
+        <label className="flex items-center gap-3 rounded-xl border border-line bg-field p-4 text-sm font-medium text-ink">
           <input
             type="checkbox"
             checked={form.featured}
@@ -260,7 +260,7 @@ export function ProductForm({
           Featured on Homepage
         </label>
 
-        <label className="flex items-center gap-3 rounded-xl border border-line bg-[#FAF8F4] p-4 text-sm font-medium text-ink">
+        <label className="flex items-center gap-3 rounded-xl border border-line bg-field p-4 text-sm font-medium text-ink">
           <input
             type="checkbox"
             checked={form.newArrival}
@@ -273,7 +273,7 @@ export function ProductForm({
         {([['sku', 'SKU', 64], ['shortDescription', 'Short description', 400], ['careInstructions', 'Care instructions', 600], ['deliveryNote', 'Delivery note', 400]] as const).map(([field, label, maxLength]) => (
           <label key={field} className="block text-sm font-medium text-ink">
             {label}
-            <input value={form[field]} maxLength={maxLength} onChange={(e) => updateField(field, e.target.value)} className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm focus:border-gold" />
+            <input value={form[field]} maxLength={maxLength} onChange={(e) => updateField(field, e.target.value)} className="mt-1.5 w-full rounded-xl border border-line bg-field px-4 py-2.5 text-sm focus:border-gold" />
           </label>
         ))}
         <label className="block text-sm font-medium text-ink md:col-span-2">
@@ -282,7 +282,7 @@ export function ProductForm({
             rows={4}
             value={form.description}
             onChange={(e) => updateField('description', e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+            className="mt-1.5 w-full rounded-xl border border-line bg-field px-4 py-2.5 text-sm outline-none focus:border-gold"
             placeholder="Describe alloy craftsmanship, dimensions, and ceremonial or daily styling."
           />
         </label>

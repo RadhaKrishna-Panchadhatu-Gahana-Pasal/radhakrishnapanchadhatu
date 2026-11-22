@@ -97,7 +97,7 @@ export default function AdminSettingsPage() {
             <input
               value={settings.storeName}
               onChange={(e) => setSettings({ ...settings, storeName: e.target.value })}
-              className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+              className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
             />
           </label>
           <label className="text-xs font-medium text-ink">
@@ -105,7 +105,7 @@ export default function AdminSettingsPage() {
             <input
               value={settings.phone}
               onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
-              className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+              className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
             />
           </label>
           <label className="text-xs font-medium text-ink">
@@ -113,7 +113,7 @@ export default function AdminSettingsPage() {
             <input
               value={settings.whatsappDigits}
               onChange={(e) => setSettings({ ...settings, whatsappDigits: e.target.value })}
-              className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+              className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
             />
           </label>
           <label className="text-xs font-medium text-ink">
@@ -121,7 +121,7 @@ export default function AdminSettingsPage() {
             <input
               value={settings.email}
               onChange={(e) => setSettings({ ...settings, email: e.target.value })}
-              className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+              className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
             />
           </label>
           <label className="text-xs font-medium text-ink">
@@ -129,7 +129,7 @@ export default function AdminSettingsPage() {
             <input
               value={settings.address}
               onChange={(e) => setSettings({ ...settings, address: e.target.value })}
-              className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+              className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
             />
           </label>
           <label className="text-xs font-medium text-ink">
@@ -137,7 +137,7 @@ export default function AdminSettingsPage() {
             <input
               value={settings.cityLine}
               onChange={(e) => setSettings({ ...settings, cityLine: e.target.value })}
-              className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+              className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
             />
           </label>
           <label className="text-xs font-medium text-ink">
@@ -145,7 +145,7 @@ export default function AdminSettingsPage() {
             <input
               value={settings.mapUrl}
               onChange={(e) => setSettings({ ...settings, mapUrl: e.target.value })}
-              className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+              className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
             />
           </label>
           <label className="text-xs font-medium text-ink">
@@ -153,7 +153,7 @@ export default function AdminSettingsPage() {
             <input
               value={settings.openingHours}
               onChange={(e) => setSettings({ ...settings, openingHours: e.target.value })}
-              className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+              className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
             />
           </label>
         </div>
@@ -270,7 +270,7 @@ export default function AdminSettingsPage() {
                   onChange={(e) =>
                     updateCustomStatus(req.id, e.target.value as CustomOrderRequest['status'])
                   }
-                  className="rounded-lg border border-line bg-[#FAF8F4] px-2.5 py-1.5 text-xs"
+                  className="rounded-lg border border-line bg-field px-2.5 py-1.5 text-xs"
                 >
                   <option value="NEW">NEW</option>
                   <option value="REVIEWING">REVIEWING</option>

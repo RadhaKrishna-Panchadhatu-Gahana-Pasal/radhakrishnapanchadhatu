@@ -58,7 +58,7 @@ export function CategoryForm() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Bridal Sets"
-            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+            className="mt-1.5 w-full rounded-xl border border-line bg-field px-4 py-2.5 text-sm outline-none focus:border-gold"
           />
         </label>
 
@@ -69,7 +69,7 @@ export function CategoryForm() {
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
             placeholder="bridal-sets"
-            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+            className="mt-1.5 w-full rounded-xl border border-line bg-field px-4 py-2.5 text-sm outline-none focus:border-gold"
           />
         </label>
 
@@ -78,7 +78,7 @@ export function CategoryForm() {
           <input
             value={imageUrl}
             onChange={(e) => setImageUrl(e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+            className="mt-1.5 w-full rounded-xl border border-line bg-field px-4 py-2.5 text-sm outline-none focus:border-gold"
           />
         </label>
 
@@ -88,7 +88,7 @@ export function CategoryForm() {
             type="number"
             value={sortOrder}
             onChange={(e) => setSortOrder(Number(e.target.value))}
-            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+            className="mt-1.5 w-full rounded-xl border border-line bg-field px-4 py-2.5 text-sm outline-none focus:border-gold"
           />
         </label>
 
@@ -98,7 +98,7 @@ export function CategoryForm() {
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
+            className="mt-1.5 w-full rounded-xl border border-line bg-field px-4 py-2.5 text-sm outline-none focus:border-gold"
           />
         </label>
 

@@ -32,7 +32,7 @@ export function CartDrawer() {
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label="Shopping cart">
       <div
-        className="fixed inset-0 bg-ink/40 backdrop-blur-[2px] transition-opacity"
+        className="fixed inset-0 bg-black/50 backdrop-blur-[2px] transition-opacity"
         onClick={() => setCartDrawerOpen(false)}
       />
 

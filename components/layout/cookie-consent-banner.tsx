@@ -57,7 +57,7 @@ export function CookieConsentBanner() {
           role="dialog"
           aria-modal="true"
           aria-label="Customize cookie preferences"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/45 p-4 backdrop-blur-[2px]"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px]"
         >
           <div className="w-full max-w-md rounded-2xl border border-line bg-surface p-6 shadow-2xl">
             <h2 className="font-serif text-2xl font-semibold text-ink">Manage Cookie Preferences</h2>

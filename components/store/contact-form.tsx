@@ -72,7 +72,7 @@ export function ContactForm() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Your full name"
-                className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+                className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
               />
             </label>
             <label className="text-sm font-medium text-ink">
@@ -82,7 +82,7 @@ export function ContactForm() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="98XXXXXXXX"
-                className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+                className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
               />
             </label>
           </div>
@@ -94,7 +94,7 @@ export function ContactForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+              className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
             />
           </label>
 
@@ -106,7 +106,7 @@ export function ContactForm() {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="How can we help?"
-              className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+              className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
             />
           </label>
 

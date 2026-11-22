@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { MapPin, Phone } from 'lucide-react';
 import { useStore } from '@/components/providers/store-provider';
@@ -13,9 +14,23 @@ export function Footer({ settings }: { settings: StoreSettings }) {
     <footer className="border-t border-line bg-surface">
       <div className="container-shell grid gap-10 py-14 md:grid-cols-4">
         <div className="md:col-span-1">
-          <div className="font-serif text-2xl font-semibold tracking-[0.04em] text-ink">
-            {settings.storeName}
-          </div>
+          <Link href="/" aria-label={`${settings.storeName} home`} className="inline-block">
+            <Image
+              src="/brand/logo-light.png"
+              alt={settings.storeName}
+              width={900}
+              height={366}
+              className="h-14 w-auto dark:hidden"
+            />
+            <Image
+              src="/brand/logo-dark.png"
+              alt=""
+              aria-hidden
+              width={900}
+              height={366}
+              className="hidden h-14 w-auto dark:block"
+            />
+          </Link>
           <p className="mt-3 text-sm leading-relaxed text-muted">{settings.tagline}</p>
           <div className="mt-4 space-y-2 text-sm text-ink">
             <p className="flex items-start gap-2">

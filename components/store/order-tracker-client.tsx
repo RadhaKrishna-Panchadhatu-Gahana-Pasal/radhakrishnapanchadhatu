@@ -85,14 +85,14 @@ export function OrderTrackerClient({
             value={orderNumber}
             onChange={(e) => setOrderNumber(e.target.value)}
             placeholder="Order Number (e.g. RKP-2026-1001)"
-            className="rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+            className="rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
           />
           <input
             required
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="Phone Number (e.g. 9841000000)"
-            className="rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+            className="rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
           />
           <button
             type="submit"

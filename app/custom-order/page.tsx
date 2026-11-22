@@ -110,7 +110,7 @@ export default function CustomOrderPage() {
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="Full name"
-                  className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+                  className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
                 />
               </label>
 
@@ -121,7 +121,7 @@ export default function CustomOrderPage() {
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   placeholder="98XXXXXXXX"
-                  className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+                  className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
                 />
               </label>
 
@@ -130,7 +130,7 @@ export default function CustomOrderPage() {
                 <select
                   value={preferredMaterial}
                   onChange={(e) => setPreferredMaterial(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+                  className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
                 >
                   <option value="Panchadhatu">Panchadhatu (Traditional Five-Metal)</option>
                   <option value="316L Surgical Steel">316L Surgical Steel</option>
@@ -144,7 +144,7 @@ export default function CustomOrderPage() {
                   value={budgetNote}
                   onChange={(e) => setBudgetNote(e.target.value)}
                   placeholder="e.g. NPR 4,000 – 8,000"
-                  className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+                  className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
                 />
               </label>
             </div>
@@ -155,7 +155,7 @@ export default function CustomOrderPage() {
                 value={referenceImageUrl}
                 onChange={(e) => setReferenceImageUrl(e.target.value)}
                 placeholder="https://..."
-                className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+                className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
               />
             </label>
 
@@ -167,7 +167,7 @@ export default function CustomOrderPage() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Describe ornament type, engraving text, bangle/ring size, stone preference, or ceremony date..."
-                className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+                className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
               />
             </label>
 

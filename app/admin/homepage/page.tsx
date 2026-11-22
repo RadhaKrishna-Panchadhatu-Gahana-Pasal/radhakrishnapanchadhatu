@@ -62,7 +62,7 @@ export default function AdminHomepagePage() {
                 <input
                   value={sec.title}
                   onChange={(e) => updateLocal(sec.id, { title: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+                  className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
                 />
               </label>
               <label className="text-xs font-medium text-ink">
@@ -70,7 +70,7 @@ export default function AdminHomepagePage() {
                 <input
                   value={sec.ctaLabel || ''}
                   onChange={(e) => updateLocal(sec.id, { ctaLabel: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+                  className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
                 />
               </label>
               <label className="text-xs font-medium text-ink sm:col-span-2">
@@ -79,7 +79,7 @@ export default function AdminHomepagePage() {
                   rows={2}
                   value={sec.subtitle}
                   onChange={(e) => updateLocal(sec.id, { subtitle: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+                  className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
                 />
               </label>
             </div>

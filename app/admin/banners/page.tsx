@@ -59,7 +59,7 @@ export default function AdminBannersPage() {
                 <input
                   value={banner.title}
                   onChange={(e) => updateLocal(banner.id, { title: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+                  className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
                 />
               </label>
 
@@ -68,7 +68,7 @@ export default function AdminBannersPage() {
                 <input
                   value={banner.imageUrl}
                   onChange={(e) => updateLocal(banner.id, { imageUrl: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+                  className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
                 />
               </label>
 
@@ -77,7 +77,7 @@ export default function AdminBannersPage() {
                 <input
                   value={banner.subtitle}
                   onChange={(e) => updateLocal(banner.id, { subtitle: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+                  className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
                 />
               </label>
 
@@ -86,7 +86,7 @@ export default function AdminBannersPage() {
                 <input
                   value={banner.ctaLabel}
                   onChange={(e) => updateLocal(banner.id, { ctaLabel: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+                  className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
                 />
               </label>
 
@@ -95,7 +95,7 @@ export default function AdminBannersPage() {
                 <input
                   value={banner.ctaUrl}
                   onChange={(e) => updateLocal(banner.id, { ctaUrl: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+                  className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
                 />
               </label>
 

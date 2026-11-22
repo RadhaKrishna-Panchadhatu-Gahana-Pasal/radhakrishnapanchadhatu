@@ -1,0 +1,37 @@
+name: build-check
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install
+        run: bun install
+      - name: Build
+        run: bun run build > build.log 2>&1
+      - name: Show log tail
+        if: always()
+        run: tail -n 120 build.log || true
+      - name: Publish log on failure
+        if: failure()
+        run: |
+          git config user.name "ci"
+          git config user.email "ci@example.com"
+          cp build.log /tmp/build.log
+          git checkout -f --orphan ci-build-log
+          git rm -rf . --quiet || true
+          cp /tmp/build.log ./build.log
+          git add build.log
+          git commit -m "ci build log" || true
+          git push -f origin ci-build-log

@@ -57,7 +57,7 @@ export function AdminLoginGate() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+              className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
             />
           </label>
 
@@ -69,7 +69,7 @@ export function AdminLoginGate() {
               value={passcode}
               onChange={(e) => setPasscode(e.target.value)}
               placeholder="Enter admin passcode"
-              className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+              className="mt-1.5 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
             />
           </label>
 

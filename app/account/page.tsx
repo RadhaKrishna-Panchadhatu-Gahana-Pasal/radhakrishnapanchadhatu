@@ -272,7 +272,7 @@ export default function AccountPage() {
               onChange={(e) => setLinkOrderNumber(e.target.value)}
               placeholder="Order Number (e.g. RKP-2026-1001)"
               aria-label="Order Number"
-              className="rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm text-ink outline-none focus:border-gold"
+              className="rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm text-ink outline-none focus:border-gold"
             />
             <input
               required
@@ -280,7 +280,7 @@ export default function AccountPage() {
               onChange={(e) => setLinkPhone(e.target.value)}
               placeholder="Checkout Phone (e.g. 9841000000)"
               aria-label="Checkout Phone Number"
-              className="rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm text-ink outline-none focus:border-gold"
+              className="rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm text-ink outline-none focus:border-gold"
             />
             <button
               type="submit"

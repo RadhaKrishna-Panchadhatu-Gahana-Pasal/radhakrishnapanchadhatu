@@ -45,7 +45,7 @@ export default function AdminAnnouncementsPage() {
             <input
               value={ann.message}
               onChange={(e) => updateLocal(ann.id, { message: e.target.value })}
-              className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3.5 py-2.5 text-sm outline-none focus:border-gold"
+              className="mt-1 w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-sm outline-none focus:border-gold"
             />
           </label>
 
@@ -55,7 +55,7 @@ export default function AdminAnnouncementsPage() {
               <input
                 value={ann.linkLabel || ''}
                 onChange={(e) => updateLocal(ann.id, { linkLabel: e.target.value })}
-                className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+                className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
               />
             </label>
             <label className="text-xs font-medium text-ink">
@@ -63,7 +63,7 @@ export default function AdminAnnouncementsPage() {
               <input
                 value={ann.linkUrl || ''}
                 onChange={(e) => updateLocal(ann.id, { linkUrl: e.target.value })}
-                className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+                className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
               />
             </label>
             <label className="text-xs font-medium text-ink">
@@ -73,7 +73,7 @@ export default function AdminAnnouncementsPage() {
                 onChange={(e) =>
                   updateLocal(ann.id, { mode: e.target.value as 'STATIC' | 'SCROLLING' })
                 }
-                className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+                className="mt-1 w-full rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
               >
                 <option value="STATIC">Static Centered</option>
                 <option value="SCROLLING">Scrolling Marquee</option>

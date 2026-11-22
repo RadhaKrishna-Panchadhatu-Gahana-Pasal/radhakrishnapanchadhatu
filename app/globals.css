@@ -2,17 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Colour tokens are stored as space-separated RGB channels so Tailwind can use
+ * them with opacity modifiers (e.g. `bg-surface/95`). Both palettes are defined
+ * here; `.dark` on <html> swaps them, which also drives every `dark:` utility
+ * and the theme-specific logo images.
+ */
 :root {
-  --sand: #f7f5f0;
-  --surface: #ffffff;
-  --ink: #25231f;
-  --muted: #77736b;
-  --gold: #b08a45;
-  --gold-deep: #80612f;
-  --line: #e9e5dc;
-  --success: #26734d;
-  --warning: #a66b18;
-  --danger: #b43b35;
+  --sand: 247 245 240;
+  --surface: 255 255 255;
+  --field: 250 248 244;
+  --elevated: 239 236 229;
+  --ink: 37 35 31;
+  --muted: 119 115 107;
+  --gold: 176 138 69;
+  --gold-deep: 128 97 47;
+  --line: 233 229 220;
+  --success: 38 115 77;
+  --warning: 166 107 24;
+  --danger: 180 59 53;
+  --shadow-color: 37 35 31;
+  color-scheme: light;
+}
+
+.dark {
+  --sand: 18 17 15;
+  --surface: 26 24 21;
+  --field: 36 33 28;
+  --elevated: 44 40 32;
+  --ink: 242 237 227;
+  --muted: 167 158 143;
+  --gold: 190 152 80;
+  --gold-deep: 172 132 68;
+  --line: 58 53 45;
+  --success: 94 190 140;
+  --warning: 226 168 84;
+  --danger: 226 120 112;
+  --shadow-color: 0 0 0;
+  color-scheme: dark;
 }
 
 html {

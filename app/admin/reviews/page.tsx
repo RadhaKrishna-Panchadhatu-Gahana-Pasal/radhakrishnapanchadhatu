@@ -76,7 +76,7 @@ export default function AdminReviewsPage() {
                 setReplyDrafts((prev) => ({ ...prev, [rev.id]: e.target.value }))
               }
               placeholder="Optional official store reply..."
-              className="w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-xs outline-none focus:border-gold"
+              className="w-full rounded-xl border border-line bg-field px-3 py-2 text-xs outline-none focus:border-gold"
             />
 
             <div className="flex flex-wrap gap-2">
