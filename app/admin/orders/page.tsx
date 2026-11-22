@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Printer, Search } from 'lucide-react';
+import { getFulfilmentStatusStyle } from '@/components/admin/fulfilment-status';
 import { formatNPR } from '@/lib/store/money';
 import type { FulfilmentStatus, Order, PaymentStatus } from '@/lib/store/types';
 
@@ -139,29 +140,44 @@ export default function AdminOrdersPage() {
       <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         {/* Order list */}
         <div className="card divide-y divide-line">
-          {orders.map((ord) => (
-            <button
-              key={ord.id}
-              type="button"
-              onClick={() => selectOrder(ord)}
-              className={`w-full p-4 text-left transition hover:bg-sand/50 ${
-                activeOrder?.id === ord.id ? 'bg-sand/80' : ''
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-semibold text-ink">{ord.orderNumber}</span>
-                <span className="font-semibold text-gold-deep tabular-nums">
-                  {formatNPR(ord.totalPaisa)}
-                </span>
-              </div>
-              <p className="mt-1 text-xs text-muted">
-                {ord.customerName} &middot; {ord.customerPhone}
-              </p>
-              <p className="mt-1 text-[11px] font-medium text-ink">
-                {ord.fulfilmentStatus} &middot; {ord.paymentMethod}: {ord.paymentStatus}
-              </p>
-            </button>
-          ))}
+          {orders.map((ord) => {
+            const listMeta = getFulfilmentStatusStyle(ord.fulfilmentStatus);
+            const ListIcon = listMeta.icon;
+            return (
+              <button
+                key={ord.id}
+                type="button"
+                onClick={() => selectOrder(ord)}
+                className={`w-full p-4 text-left transition hover:bg-sand/50 ${
+                  activeOrder?.id === ord.id ? 'bg-sand/80' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-ink">{ord.orderNumber}</span>
+                  <span className="font-semibold text-gold-deep tabular-nums">
+                    {formatNPR(ord.totalPaisa)}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted">
+                  {ord.customerName} &middot; {ord.customerPhone}
+                </p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
+                  <span
+                    className={`inline-flex items-center gap-1 font-semibold ${listMeta.textClass}`}
+                  >
+                    <ListIcon aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                    <span>{listMeta.label}</span>
+                  </span>
+                  <span aria-hidden="true" className="text-muted">
+                    &middot;
+                  </span>
+                  <span className="font-medium text-muted">
+                    {ord.paymentMethod}: {ord.paymentStatus}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
         </div>
 
         {/* Selected Order Editor */}
@@ -290,21 +306,70 @@ export default function AdminOrdersPage() {
             </button>
 
             <div className="border-t border-line pt-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-                Timeline History
-              </p>
-              <ul className="mt-2 space-y-2 text-xs">
-                {activeOrder.timeline.map((t) => (
-                  <li key={t.id} className="rounded-lg bg-sand/60 p-2.5">
-                    <strong>{t.toStatus}</strong> &mdash; {t.publicNote}
-                    {t.internalNote && (
-                      <span className="block text-[11px] text-muted">
-                        Internal: {t.internalNote}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+                  Timeline History
+                </p>
+                <p className="text-[11px] text-muted">
+                  <span className="font-medium text-blue-800">Prep</span> &middot;{' '}
+                  <span className="font-medium text-amber-800">Transit</span> &middot;{' '}
+                  <span className="font-medium text-emerald-800">Delivered</span> &middot;{' '}
+                  <span className="font-medium text-red-800">Issues</span>
+                </p>
+              </div>
+              {activeOrder.timeline.length === 0 ? (
+                <p className="mt-2 rounded-xl border border-line bg-sand/40 p-3 text-xs text-muted">
+                  No timeline updates recorded yet.
+                </p>
+              ) : (
+                <ul className="mt-2.5 space-y-2.5 text-xs">
+                  {activeOrder.timeline.map((t) => {
+                    const entryMeta = getFulfilmentStatusStyle(t.toStatus);
+                    const EntryIcon = entryMeta.icon;
+                    const fromLabel = t.fromStatus
+                      ? getFulfilmentStatusStyle(t.fromStatus).label
+                      : null;
+                    const formattedDate = new Date(t.createdAt).toLocaleString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    });
+
+                    return (
+                      <li
+                        key={t.id}
+                        className={`rounded-xl border p-3 transition-colors ${entryMeta.rowClass}`}
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span
+                              className={`inline-flex items-center gap-1.5 font-semibold ${entryMeta.textClass}`}
+                            >
+                              <EntryIcon aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                              <span>{entryMeta.label}</span>
+                            </span>
+                            {fromLabel && t.fromStatus !== t.toStatus && (
+                              <span className={`text-[11px] ${entryMeta.mutedClass}`}>
+                                from {fromLabel}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[11px] text-muted tabular-nums">
+                            {formattedDate} &middot; {t.actor}
+                          </span>
+                        </div>
+                        <p className="mt-1.5 text-xs leading-relaxed text-ink">{t.publicNote}</p>
+                        {t.internalNote && (
+                          <p className={`mt-1 text-[11px] ${entryMeta.mutedClass}`}>
+                            Internal: {t.internalNote}
+                          </p>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
           </div>
         )}
