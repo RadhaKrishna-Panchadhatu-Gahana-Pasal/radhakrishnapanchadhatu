@@ -44,7 +44,7 @@ export default function HomePage() {
             <p className="mt-5 max-w-xl text-base leading-relaxed text-muted sm:text-lg">
               {heroSection?.subtitle ||
                 heroBanner?.subtitle ||
-                'Hand-finished ornaments rooted in Nepali heritage from Yogikuti, Santichowk — delivered nationwide across all 7 provinces.'}
+                'Hand-finished ornaments rooted in Nepali heritage from 3 Tilottama Path, Yogikuti, Butwal — delivered nationwide across all 7 provinces.'}
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -74,7 +74,7 @@ export default function HomePage() {
               </div>
               <div>
                 <p className="font-semibold uppercase tracking-[0.14em] text-ink">Butwal Store</p>
-                <p className="mt-1">Yogikuti, Santichowk</p>
+                <p className="mt-1">Yogikuti &middot; Tilottama Path</p>
               </div>
             </div>
           </div>

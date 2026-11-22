@@ -1,9 +1,9 @@
 # Radha Krishna Panchha Dhatu — E-Commerce Platform
 
-Premium Panchadhatu and steel jewellery e-commerce platform for a Nepal-based retailer in Butwal, with online ordering, Nepal payment gateways (eSewa, Khalti, Fonepay), WhatsApp ordering, a full CMS admin panel, and PWA support.
+Premium Panchadhatu and steel jewellery storefront for a Nepal-based retailer in Butwal, with a CMS-driven admin panel, online ordering, order tracking, verified reviews, WhatsApp ordering, and PWA support.
 
-![Status](https://img.shields.io/badge/status-development-yellow)
-![Framework](https://img.shields.io/badge/framework-Next.js_15-black)
+![Status](https://img.shields.io/badge/status-internal--preview-yellow)
+![Framework](https://img.shields.io/badge/framework-Next.js_14-black)
 ![Language](https://img.shields.io/badge/language-TypeScript-blue)
 ![Market](https://img.shields.io/badge/market-Nepal-red)
 
@@ -14,7 +14,7 @@ Premium Panchadhatu and steel jewellery e-commerce platform for a Nepal-based re
 | Field | Value |
 |---|---|
 | Store | Radha Krishna Panchha Dhatu |
-| Location | Yogikuti, Santichowk, Tilottama Path, Butwal |
+| Location | 3 Tilottama Path, Yogikuti (500m west of Yogikuti Chowk), Butwal 32907 |
 | Phone | +977 984-670-3068 / +977 976-367-8419 |
 | Speciality | Panchadhatu & Steel Jewellery |
 | Delivery | Throughout Nepal |
@@ -25,138 +25,224 @@ Premium Panchadhatu and steel jewellery e-commerce platform for a Nepal-based re
 
 | Area | Technology |
 |---|---|
-| Framework | Next.js 15 App Router |
+| Framework | Next.js 14.2 (App Router) |
 | Language | TypeScript |
-| Styling | Tailwind CSS + shadcn/ui |
-| Database | PostgreSQL via Prisma |
-| Auth | Auth.js (NextAuth v5) |
-| Payments | eSewa, Khalti, Fonepay |
-| Storage | Cloudflare R2 (S3-compatible) |
-| Cache | Upstash Redis |
-| Email | Resend |
+| Styling | Tailwind CSS |
+| Data | JSON document store on disk (`.data/store.json`) |
+| Admin auth | HMAC-signed cookie session + admin allowlist + passcode |
+| Customer sign-in | Firebase Auth (optional; only if `NEXT_PUBLIC_FIREBASE_*` is configured) |
+| Maps | Google Maps JS API (optional) |
+| PWA | Web manifest + service worker + offline indicator |
+
+> `prisma/schema.prisma` and `prisma/seed.ts` describe a planned PostgreSQL model. **They are not wired into the running app** — nothing imports `lib/prisma.ts`. See [Roadmap](#roadmap).
 
 ---
 
-## Getting Started
+## Requirements
 
-### Prerequisites
+- Node.js 20 or newer
+- Bun 1.2+ (`bun.lock` is the committed lockfile) — or npm/pnpm if you prefer
 
-- Node.js LTS (v20+)
-- pnpm (`npm install -g pnpm`)
-- PostgreSQL database
+---
 
-### Setup
+## Setup
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/RadhaKrishna-Panchadhatu-Gahana-Pasal/radhakrishnapanchadhatu.git
-cd radhakrishnapanchadhatu
+# 1. Install dependencies
+bun install
 
-# 2. Install dependencies
-pnpm install
-
-# 3. Configure environment
+# 2. Configure environment
 cp .env.example .env
-# Edit .env with your database URL, auth secret, etc.
+# Edit .env — see Environment Variables below
 
-# 4. Generate Prisma client
-pnpm db:generate
-
-# 5. Run database migrations
-pnpm db:migrate
-
-# 6. Seed development data
-pnpm db:seed
-
-# 7. Start dev server
-pnpm dev
+# 3. Start the dev server
+bun run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) for the storefront.  
-Open [http://localhost:3000/admin](http://localhost:3000/admin) for the admin panel.
+Storefront: <http://localhost:3000>
+Admin panel: <http://localhost:3000/admin>
+
+The app boots with a seeded catalogue (6 products, 6 categories, CMS pages, shipping zones, 2 coupons) and one delivered sample order — `RKP-2026-1001` — so the tracking and verified-review flows can be tested immediately.
 
 ---
 
-## Scripts
+## Admin Access
 
-```bash
-pnpm dev          # Start development server
-pnpm build        # Production build
-pnpm start        # Start production server
-pnpm lint         # ESLint
-pnpm typecheck    # TypeScript check
-pnpm test         # Run unit tests
-pnpm test:e2e     # Run Playwright end-to-end tests
-pnpm db:generate  # Generate Prisma client
-pnpm db:migrate   # Run migrations (dev)
-pnpm db:deploy    # Run migrations (production)
-pnpm db:seed      # Seed development data
-pnpm db:studio    # Open Prisma Studio
-```
+Sign in at `/admin/login` with an email on the allowlist **and** your `ADMIN_PASSCODE`.
+
+Two settings matter here:
+
+- `ADMIN_PASSCODE` — if unset, the code falls back to `RKP-ADMIN-2026`. **Always set it in production.**
+- `AUTH_SECRET` — signs the admin and customer session cookies. If unset it falls back to a development string. **Always set it in production.**
+
+The allowlist lives in `app/api/admin/auth/route.ts` (`ALLOWED_ADMINS`). Add or remove staff emails there; each entry carries a role (`OWNER`, `MANAGER`, `ORDER_STAFF`, `CONTENT_EDITOR`, `REVIEWER`).
+
+---
+
+## What the CMS Controls
+
+| Admin page | Manages |
+|---|---|
+| `/admin/products` | Products, prices, stock, images, publish state |
+| `/admin/categories` | Categories, slugs, ordering |
+| `/admin/orders` | Fulfilment status, courier + tracking reference, notes |
+| `/admin/inventory` | Stock levels and movement history |
+| `/admin/homepage` | Homepage sections and their order |
+| `/admin/banners` | Hero and promo banners |
+| `/admin/announcements` | Announcement bar messages |
+| `/admin/pages` | About, FAQ, shipping, returns, terms, privacy, cookies |
+| `/admin/reviews` | Approve, reject, reply to verified reviews |
+| `/admin/media` | Media library entries |
+| `/admin/settings` | Store details, payment toggles, shipping zones, coupons |
+
+Every admin write is recorded in the audit log (`/admin` dashboard) with actor, role and timestamp.
+
+---
+
+## Data & Persistence
+
+The whole shop — catalogue, CMS content, orders, enquiries, reviews, audit log — is one `StoreDatabase` object.
+
+- On start-up the app loads `.data/store.json` if it exists, otherwise it seeds fresh data.
+- Every mutation (admin save, checkout, review, enquiry, custom-order lead) writes the file back atomically.
+- Override the location with `STORE_DATA_FILE` (absolute or relative path).
+
+**Backing up the shop = copying that one file.** Add it to your backup routine.
+
+### Hosting caveat
+
+This design needs a writable disk. It is fine on a VPS, a local machine, or Docker with a volume. On a read-only/ephemeral filesystem such as **Vercel**, the app still runs but writes fail — it logs one warning and keeps the data in memory, so catalogue edits and orders are lost between requests and deploys. To run on serverless, the Prisma/PostgreSQL layer must be wired first (see Roadmap).
+
+---
+
+## Environment Variables
+
+Required for a production launch:
+
+| Variable | Purpose |
+|---|---|
+| `AUTH_SECRET` | Signs admin/customer session cookies |
+| `ADMIN_PASSCODE` | Admin panel passcode |
+| `APP_URL` | Absolute origin used in canonical URLs and metadata |
+| `NEXT_PUBLIC_APP_URL` | Same origin, exposed to the browser |
+| `STORE_DATA_FILE` | Optional path for the JSON shop database |
+
+Optional integrations (each degrades gracefully when unset):
+
+- Firebase client SDK — `NEXT_PUBLIC_FIREBASE_API_KEY`, `_AUTH_DOMAIN`, `_PROJECT_ID`, `_STORAGE_BUCKET`, `_MESSAGING_SENDER_ID`, `_APP_ID`, `_DATABASE_ID`, `_MEASUREMENT_ID` (enables Google sign-in, account page and wishlist sync)
+- Google Maps — `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `GOOGLE_MAPS_API_KEY` (address autocomplete, store map)
+- Email — `RESEND_API_KEY`, `EMAIL_FROM`
+- SMS / WhatsApp — `SMS_*`, `WHATSAPP_*`
+- Object storage — `STORAGE_*`
+- Analytics — `NEXT_PUBLIC_GA_ID`, `SENTRY_DSN`
+
+Payment gateway credentials (`ESEWA_*`, `KHALTI_*`, `FONEPAY_*`) are reserved but not yet consumed — see below.
+
+---
+
+## Payments
+
+**Online payment is a simulation, not a live gateway integration.**
+
+At checkout an order is created with `paymentStatus: INITIATED` and a provider reference, and the customer completes a simulated gateway step that posts the outcome to `/api/payments/verify`. No request is made to eSewa, Khalti or Fonepay, and no provider signature is verified.
+
+Do not enable online payment for real customers until:
+
+1. Merchant accounts are approved by each provider,
+2. a server-initiated payment request replaces the simulated step, and
+3. provider callbacks/signatures are verified server-side.
+
+Cash on Delivery works end to end today, including per-province availability.
+
+---
+
+## Order Tracking & Reviews
+
+- Customers track orders at `/track-order` with order number + phone, or via the tokenised link `/track-order/<token>` issued at checkout.
+- Only the tokenised view is shareable; it excludes street address and email.
+- Reviews require a delivered order: order number + checkout phone, then moderation before they appear.
 
 ---
 
 ## Project Structure
 
 ```
-src/
-├── app/
-│   ├── (store)/          # Public storefront pages
-│   ├── (auth)/           # Login / register
-│   ├── account/          # Customer account pages
-│   ├── admin/            # Protected admin panel
-│   └── api/              # API routes (payments, webhooks)
-├── components/
-│   ├── layout/           # Header, footer, announcement bar
-│   ├── home/             # Homepage sections
-│   └── admin/            # Admin UI components
-├── features/
-│   └── payments/         # Payment provider adapters (eSewa, Khalti, Fonepay)
-├── lib/
-│   ├── db/               # Prisma client singleton
-│   ├── money/            # Paisa arithmetic helpers
-│   ├── env/              # Type-safe env variables
-│   └── utils.ts          # Shared utilities
-├── types/                # Shared TypeScript types
-└── middleware.ts         # Security headers, auth guard
-prisma/
-├── schema.prisma         # Full database schema
-└── seed.ts               # Development seed data
+app/
+├── (public pages)        page.tsx, catalog, product/[slug], categories/[slug],
+│                         cart, checkout, wishlist, search, new-arrivals,
+│                         custom-order, contact, track-order, account
+├── admin/                CMS panel (products, orders, inventory, homepage,
+│                         banners, announcements, pages, reviews, media, settings)
+├── api/                  checkout, payments/verify, orders/track, products,
+│                         reviews, contact, custom-order-requests,
+│                         storefront, admin/*
+├── layout.tsx            Root layout, fonts, announcement bar, header, footer
+├── sitemap.ts / robots.ts / manifest.ts
+components/
+├── admin/                Admin shell, forms, editors
+├── layout/               Header, footer, cart drawer, search, cookie banner
+├── store/                Catalog, product detail, checkout, tracking, CMS view
+├── providers/            Cart, wishlist, auth, PWA, cookie state
+lib/
+├── store/repository.ts   StoreDatabase, seed data, all domain mutations
+├── store/persistence.ts  Atomic JSON read/write
+├── store/auth.ts         Signed session cookies
+├── store/money.ts        Paisa arithmetic
+├── firebase/             Optional client config + auth helpers
+├── seo/metadata.ts       Canonical/OG metadata helpers
+└── prisma.ts             Unused Prisma singleton (planned migration)
+prisma/                   Planned schema + seed (not used by the app)
+public/                   Images, icons, service worker
 ```
 
 ---
 
-## Payment Gateways
+## Scripts
 
-| Gateway | Status | Notes |
-|---|---|---|
-| eSewa | Sandbox ready | Requires merchant credentials for production |
-| Khalti | Sandbox ready | Requires merchant credentials for production |
-| Fonepay | Placeholder | Requires official merchant onboarding and integration docs |
+```bash
+bun run dev         # Development server on :3000
+bun run build       # prisma generate && next build
+bun run start       # Production server
+bun run lint        # ESLint
+bun run typecheck   # tsc --noEmit
+```
 
-**Important:** Online payments require merchant account approval from each provider. Use sandbox credentials during development. See `.env.example` for required variables.
+`prisma/seed.ts` is included for the planned database but is not wired to a script yet (it needs `tsx` or `ts-node` as a dev dependency).
 
 ---
 
-## Development Phases
+## Roadmap
 
-- **Phase 1** — Foundation & design system ✅ (this scaffold)
-- **Phase 2** — CMS & product catalogue
-- **Phase 3** — Cart, checkout, orders
-- **Phase 4** — Payment integrations
-- **Phase 5** — Auth, notifications, accounts
-- **Phase 6** — Reviews, PWA, SEO
-- **Phase 7** — Production launch
+Done:
+
+- ✅ Storefront, catalogue, product detail, search, filtered catalog
+- ✅ Cart, checkout, COD + simulated online payment, coupons, province shipping zones
+- ✅ Orders: tracking, timeline, admin fulfilment, courier reference
+- ✅ CMS: products, categories, homepage, banners, announcements, pages, media, settings
+- ✅ Reviews with verified-purchase moderation, custom-order leads, contact enquiries
+- ✅ PWA, SEO metadata, sitemap, robots, cookie consent
+- ✅ JSON persistence, audit log
+
+Remaining:
+
+- ⬜ Wire Prisma/PostgreSQL so the shop can run on serverless hosting
+- ⬜ Replace simulated payments with real eSewa / Khalti / Fonepay requests and verified callbacks
+- ⬜ Migrate admin auth to Auth.js with per-user roles (currently allowlist + passcode)
+- ⬜ Email/SMS/WhatsApp order notifications
+- ⬜ Object storage uploads for product and banner images
+- ⬜ Automated tests (no test runner is configured)
+- ⬜ Production launch: real domain, credentials, backups, monitoring
 
 ---
 
 ## Security Notes
 
-- Never commit `.env` to Git
-- Payment provider credentials are server-side only
-- Admin routes require role-based authentication
-- All totals are calculated server-side — never trust client-submitted prices
+- Never commit `.env` or `.data/` — both are gitignored
+- `ADMIN_PASSCODE`, `AUTH_SECRET` and payment credentials are server-side only
+- All totals are recalculated server-side; client-submitted prices are ignored
 - Money is stored as integer paisa to avoid floating-point errors
+- Admin API routes reject unauthenticated requests (401)
+- Customer-facing order tracking never exposes street address or email
 
 ---
 

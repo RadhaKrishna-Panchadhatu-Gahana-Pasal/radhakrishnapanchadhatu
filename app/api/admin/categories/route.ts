@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getAdminSession } from '@/lib/store/auth';
-import { appendAuditLog, getStore, uid } from '@/lib/store/repository';
+import { appendAuditLog, getStore, saveStore, uid } from '@/lib/store/repository';
 
 export const dynamic = 'force-dynamic';
 
@@ -104,5 +104,6 @@ export async function DELETE(req: NextRequest) {
   }
 
   store.categories = store.categories.filter((c) => c.id !== id);
+  saveStore();
   return NextResponse.json({ deleted: true });
 }

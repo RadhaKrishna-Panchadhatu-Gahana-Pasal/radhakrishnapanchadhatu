@@ -126,9 +126,9 @@ async function main() {
     create: {
       key: "store_address",
       value: {
-        line1: "Yogikuti, Santichowk",
-        line2: "Tilottama Path",
-        city: "Butwal",
+        line1: "3 Tilottama Path, Yogikuti",
+        line2: "500m west of Yogikuti Chowk",
+        city: "Butwal 32907",
         district: "Rupandehi",
         province: "Lumbini Province",
         country: "Nepal",

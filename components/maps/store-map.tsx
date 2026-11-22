@@ -44,7 +44,7 @@ function StoreLocationMarker({
       try {
         const { Place } = placesLib!;
         const { places } = await Place.searchByText({
-          textQuery: 'Yogikuti Santichowk Butwal Rupandehi Nepal',
+          textQuery: 'Radha Krishna Panchha Dhatu, 3 Tilottama Path, Yogikuti, Butwal 32907, Nepal',
           fields: ['displayName', 'formattedAddress', 'location'],
           region: 'NP',
         });

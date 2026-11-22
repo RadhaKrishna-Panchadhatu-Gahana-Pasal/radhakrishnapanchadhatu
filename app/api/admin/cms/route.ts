@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSession } from '@/lib/store/auth';
-import { appendAuditLog, getStore, nowIso, uid } from '@/lib/store/repository';
+import { appendAuditLog, getStore, nowIso, saveStore, uid } from '@/lib/store/repository';
 import { paisaFromNPR } from '@/lib/store/money';
 
 export const dynamic = 'force-dynamic';
@@ -28,6 +28,13 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
+  const response = await applyCmsPatch(req);
+  // Persist whatever the editor changed so CMS content survives a restart.
+  if (response.status < 400) saveStore();
+  return response;
+}
+
+async function applyCmsPatch(req: NextRequest) {
   const session = getAdminSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

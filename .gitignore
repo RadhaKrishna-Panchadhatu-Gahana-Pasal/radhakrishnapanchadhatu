@@ -26,6 +26,9 @@
 # Vercel
 .vercel
 
+# Local shop database (products, orders, CMS content written at runtime)
+/.data/
+
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts

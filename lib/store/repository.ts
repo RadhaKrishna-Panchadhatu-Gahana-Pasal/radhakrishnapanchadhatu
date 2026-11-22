@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { loadStoreFromDisk, saveStoreToDisk } from './persistence';
 import type {
   AdminAuditLog,
   AdminRole,
@@ -60,9 +61,10 @@ function createInitialDatabase(): StoreDatabase {
     phone: '984-670-3068',
     whatsappDigits: '9779846703068',
     email: 'Confirm business email in Store Settings',
-    address: 'Yogikuti, Santichowk',
-    cityLine: 'Butwal, Rupandehi, Lumbini Province, Nepal',
-    mapUrl: 'https://maps.google.com/?q=Yogikuti+Butwal+Nepal',
+    address: '3 Tilottama Path, Yogikuti (500m west of Yogikuti Chowk)',
+    cityLine: 'Butwal 32907, Rupandehi, Lumbini Province, Nepal',
+    mapUrl:
+      'https://www.google.com/maps/search/?api=1&query=Radha%20Krishna%20Panchha%20Dhatu%2C%203%20Tilottama%20Path%2C%20Yogikuti%2C%20Butwal%2032907',
     openingHours: 'Confirm opening hours in Store Settings',
     facebookUrl: '',
     tiktokUrl: '',
@@ -467,7 +469,7 @@ function createInitialDatabase(): StoreDatabase {
       title: 'Our Craft & Heritage',
       summary: 'Panchadhatu tradition and modern steel ornaments from Butwal, Nepal.',
       content:
-        'Radhakrishna Panchadhatu brings together traditional Nepali five-metal artistry and resilient 316L stainless steel jewellery. Located at Yogikuti, Santichowk in Butwal, we welcome walk-in guests and ship reliably across all seven provinces of Nepal.\n\nOur Panchadhatu ornaments are valued for ceremonial wear, spiritual significance, and warm metallic lustre, while our surgical steel line offers hypoallergenic, water-resistant pieces tailored for everyday comfort.',
+        'Radhakrishna Panchadhatu brings together traditional Nepali five-metal artistry and resilient 316L stainless steel jewellery. Located at 3 Tilottama Path, Yogikuti — about 500 metres west of Yogikuti Chowk — in Butwal 32907, we welcome walk-in guests and ship reliably across all seven provinces of Nepal.\n\nOur Panchadhatu ornaments are valued for ceremonial wear, spiritual significance, and warm metallic lustre, while our surgical steel line offers hypoallergenic, water-resistant pieces tailored for everyday comfort.',
       updatedAt: created,
     },
     {
@@ -687,9 +689,19 @@ const globalForStore = globalThis as unknown as { __rkpStore?: StoreDatabase };
 
 export function getStore(): StoreDatabase {
   if (!globalForStore.__rkpStore) {
-    globalForStore.__rkpStore = createInitialDatabase();
+    globalForStore.__rkpStore = loadStoreFromDisk() ?? createInitialDatabase();
   }
   return globalForStore.__rkpStore;
+}
+
+/**
+ * Persist the current store to disk. Called after every mutation so CMS edits,
+ * orders and settings survive a server restart. Safe to call when nothing
+ * changed and safe on read-only filesystems (it logs once and gives up).
+ */
+export function saveStore(): boolean {
+  if (!globalForStore.__rkpStore) return false;
+  return saveStoreToDisk(globalForStore.__rkpStore);
 }
 
 export function appendAuditLog(params: {
@@ -711,6 +723,7 @@ export function appendAuditLog(params: {
     summary: params.summary,
     createdAt: nowIso(),
   });
+  saveStore();
 }
 
 export function queryPublicProducts(opts?: {
@@ -969,6 +982,7 @@ export function createServerOrder(input: {
   };
 
   store.orders.unshift(order);
+  saveStore();
   return { ok: true, order };
 }
 
@@ -1021,6 +1035,7 @@ export function verifyServerPayment(params: {
   }
 
   order.updatedAt = timestamp;
+  saveStore();
   return { ok: true, order, idempotentReplay: false };
 }
 
@@ -1124,6 +1139,7 @@ export function submitVerifiedReview(input: {
     createdAt: nowIso(),
   };
   store.reviews.unshift(review);
+  saveStore();
   return { ok: true, review };
 }
 
@@ -1151,6 +1167,7 @@ export function createCustomOrderLead(input: {
     createdAt: nowIso(),
   };
   store.customOrderRequests.unshift(req);
+  saveStore();
   return req;
 }
 

@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     template: '%s | Radhakrishna Panchadhatu',
   },
   description:
-    'Handcrafted Panchadhatu & 316L Surgical Steel Jewellery from Yogikuti, Santichowk, Butwal. Nationwide delivery across Nepal with eSewa, Khalti, Fonepay & COD.',
+    'Handcrafted Panchadhatu & 316L Surgical Steel Jewellery from 3 Tilottama Path, Yogikuti, Butwal 32907. Nationwide delivery across Nepal with eSewa, Khalti, Fonepay & COD.',
   applicationName: 'Radhakrishna Panchadhatu',
   appleWebApp: {
     capable: true,

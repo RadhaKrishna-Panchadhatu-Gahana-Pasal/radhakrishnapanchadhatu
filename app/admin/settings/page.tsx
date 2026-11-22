@@ -133,6 +133,22 @@ export default function AdminSettingsPage() {
             />
           </label>
           <label className="text-xs font-medium text-ink">
+            City, Postal Code &amp; Province
+            <input
+              value={settings.cityLine}
+              onChange={(e) => setSettings({ ...settings, cityLine: e.target.value })}
+              className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+            />
+          </label>
+          <label className="text-xs font-medium text-ink">
+            Google Maps Link (opens from the store map card)
+            <input
+              value={settings.mapUrl}
+              onChange={(e) => setSettings({ ...settings, mapUrl: e.target.value })}
+              className="mt-1 w-full rounded-xl border border-line bg-[#FAF8F4] px-3 py-2 text-sm outline-none focus:border-gold"
+            />
+          </label>
+          <label className="text-xs font-medium text-ink">
             Opening Hours
             <input
               value={settings.openingHours}
