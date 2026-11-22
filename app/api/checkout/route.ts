@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { sendWhatsAppOrderConfirmation } from '@/lib/notifications/whatsapp';
-import { buildFonepayPaymentUrl, getFonepayConfig } from '@/lib/payments/fonepay';
+import {
+  buildFonepayPaymentUrl,
+  getFonepayConfig,
+  getRequestOrigin,
+} from '@/lib/payments/fonepay';
 import {
   calculateDeliveryFee,
   createServerOrder,
@@ -89,7 +93,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (parsed.data.paymentMethod === 'FONEPAY' && !getFonepayConfig()) {
+    const fonepayConfig = getFonepayConfig(
+      `${getRequestOrigin(req)}/api/payments/fonepay/callback`
+    );
+
+    if (parsed.data.paymentMethod === 'FONEPAY' && !fonepayConfig) {
       return NextResponse.json(
         {
           error:
@@ -129,9 +137,8 @@ export async function POST(req: NextRequest) {
     // Real Fonepay redirect: signed payment request, then server-side verification
     let paymentUrl: string | undefined;
     if (result.order.paymentMethod === 'FONEPAY') {
-      const fonepay = getFonepayConfig();
-      if (fonepay) {
-        paymentUrl = buildFonepayPaymentUrl(fonepay, {
+      if (fonepayConfig) {
+        paymentUrl = buildFonepayPaymentUrl(fonepayConfig, {
           reference: result.order.payment.providerReference,
           amountPaisa: result.order.totalPaisa,
           remark: `Order ${result.order.orderNumber}`,

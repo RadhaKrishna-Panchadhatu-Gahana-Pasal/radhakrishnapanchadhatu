@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   getFonepayConfig,
+  getRequestOrigin,
   readFonepayReturnParams,
   verifyFonepayReturnSignature,
   verifyFonepayTransaction,
   type FonepayVerification,
 } from '@/lib/payments/fonepay';
-import { getSiteBaseUrl } from '@/lib/seo/metadata';
 import {
   findOrderForPaymentReference,
   flushStore,
@@ -25,12 +25,24 @@ export const dynamic = 'force-dynamic';
  * server-to-server verification confirms the transaction and the amount.
  */
 
-function absolute(path: string): string {
-  return `${getSiteBaseUrl().replace(/\/+$/, '')}${path}`;
+function resolveOrigin(req: NextRequest): string {
+  const configured = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || '').replace(
+    /\/+$/,
+    ''
+  );
+  if (configured && !/^https?:\/\/(localhost|127\.0\.0\.1)/i.test(configured)) return configured;
+  return getRequestOrigin(req);
 }
 
-function trackPath(token: string, reason: string): string {
-  return absolute(`/track-order/${encodeURIComponent(token)}?payment=${encodeURIComponent(reason)}`);
+function absolute(origin: string, path: string): string {
+  return `${origin}${path}`;
+}
+
+function trackPath(origin: string, token: string, reason: string): string {
+  return absolute(
+    origin,
+    `/track-order/${encodeURIComponent(token)}?payment=${encodeURIComponent(reason)}`
+  );
 }
 
 async function collectParams(req: NextRequest): Promise<URLSearchParams> {
@@ -57,20 +69,22 @@ async function collectParams(req: NextRequest): Promise<URLSearchParams> {
 }
 
 async function handleReturn(req: NextRequest): Promise<NextResponse> {
+  const origin = resolveOrigin(req);
   const params = await collectParams(req);
   const { reference, bankCode, transactionId } = readFonepayReturnParams(params);
 
   if (!reference) {
-    return NextResponse.redirect(absolute('/checkout?payment=missing-reference'));
+    return NextResponse.redirect(absolute(origin, '/checkout?payment=missing-reference'));
   }
 
   await hydrateStore();
   const order = findOrderForPaymentReference(reference);
   if (!order) {
-    return NextResponse.redirect(absolute('/checkout?payment=unknown-order'));
+    return NextResponse.redirect(absolute(origin, '/checkout?payment=unknown-order'));
   }
 
   const successPath = absolute(
+    origin,
     `/order/success?orderNumber=${encodeURIComponent(order.orderNumber)}&token=${encodeURIComponent(
       order.trackingToken
     )}`
@@ -82,12 +96,12 @@ async function handleReturn(req: NextRequest): Promise<NextResponse> {
   }
 
   if (order.paymentMethod !== 'FONEPAY') {
-    return NextResponse.redirect(trackPath(order.trackingToken, 'unexpected-method'));
+    return NextResponse.redirect(trackPath(origin, order.trackingToken, 'unexpected-method'));
   }
 
-  const config = getFonepayConfig();
+  const config = getFonepayConfig(`${origin}/api/payments/fonepay/callback`);
   if (!config) {
-    return NextResponse.redirect(trackPath(order.trackingToken, 'gateway-not-configured'));
+    return NextResponse.redirect(trackPath(origin, order.trackingToken, 'gateway-not-configured'));
   }
 
   if (!verifyFonepayReturnSignature(config, params)) {
@@ -98,7 +112,7 @@ async function handleReturn(req: NextRequest): Promise<NextResponse> {
       outcome: 'FAILED',
     });
     await flushStore();
-    return NextResponse.redirect(trackPath(order.trackingToken, 'signature-mismatch'));
+    return NextResponse.redirect(trackPath(origin, order.trackingToken, 'signature-mismatch'));
   }
 
   let verification: FonepayVerification;
@@ -114,7 +128,7 @@ async function handleReturn(req: NextRequest): Promise<NextResponse> {
       '[fonepay] Could not verify the transaction. The order stays INITIATED for reconciliation.',
       error instanceof Error ? error.message : error
     );
-    return NextResponse.redirect(trackPath(order.trackingToken, 'not-verified'));
+    return NextResponse.redirect(trackPath(origin, order.trackingToken, 'not-verified'));
   }
 
   if (!verification.success) {
@@ -125,7 +139,7 @@ async function handleReturn(req: NextRequest): Promise<NextResponse> {
       outcome: 'FAILED',
     });
     await flushStore();
-    return NextResponse.redirect(trackPath(order.trackingToken, 'failed'));
+    return NextResponse.redirect(trackPath(origin, order.trackingToken, 'failed'));
   }
 
   // Never trust the gateway's amount blindly: it must match what we stored.
@@ -140,7 +154,7 @@ async function handleReturn(req: NextRequest): Promise<NextResponse> {
     console.error(
       `[fonepay] Amount mismatch on ${order.orderNumber}: paid ${verification.amountPaisa} paisa, expected ${order.totalPaisa}.`
     );
-    return NextResponse.redirect(trackPath(order.trackingToken, 'amount-mismatch'));
+    return NextResponse.redirect(trackPath(origin, order.trackingToken, 'amount-mismatch'));
   }
 
   const settled = verifyServerPayment({
@@ -153,7 +167,7 @@ async function handleReturn(req: NextRequest): Promise<NextResponse> {
   await flushStore();
 
   if (!settled.ok) {
-    return NextResponse.redirect(trackPath(order.trackingToken, 'not-verified'));
+    return NextResponse.redirect(trackPath(origin, order.trackingToken, 'not-verified'));
   }
 
   return NextResponse.redirect(successPath);
@@ -164,7 +178,7 @@ export async function GET(req: NextRequest) {
     return await handleReturn(req);
   } catch (error) {
     console.error('[fonepay] Return handler failed.', error instanceof Error ? error.message : error);
-    return NextResponse.redirect(absolute('/checkout?payment=error'));
+    return NextResponse.redirect(absolute(resolveOrigin(req), '/checkout?payment=error'));
   }
 }
 

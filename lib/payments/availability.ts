@@ -176,7 +176,6 @@ export function resolvePaymentProviders(input: {
  */
 export function getPaymentProviderStates(settings: PaymentSettings): PaymentProviderState[] {
   const liveApproved = process.env.PAYMENTS_ALLOW_LIVE === 'true';
-  const appOrigin = Boolean(process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL);
 
   return resolvePaymentProviders({
     stage: getDeploymentStage(),
@@ -185,9 +184,8 @@ export function getPaymentProviderStates(settings: PaymentSettings): PaymentProv
     configured: {
       esewa: Boolean(process.env.ESEWA_PRODUCT_CODE && process.env.ESEWA_SECRET_KEY),
       khalti: Boolean(process.env.KHALTI_SECRET_KEY),
-      fonepay: Boolean(
-        process.env.FONEPAY_MERCHANT_ID && process.env.FONEPAY_SECRET_KEY && appOrigin
-      ),
+      // The return URL is derived from APP_URL when set, otherwise from the request host.
+      fonepay: Boolean(process.env.FONEPAY_MERCHANT_ID && process.env.FONEPAY_SECRET_KEY),
     },
   });
 }

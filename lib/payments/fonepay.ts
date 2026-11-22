@@ -53,11 +53,26 @@ export function getFonepayReturnUrl(): string {
   return origin ? `${origin}/api/payments/fonepay/callback` : '';
 }
 
+/**
+ * Public origin of the incoming request, used when APP_URL is not configured
+ * (Vercel sets x-forwarded-host to the domain the shopper used).
+ */
+export function getRequestOrigin(req: {
+  headers: { get(name: string): string | null };
+  nextUrl: { origin: string };
+}): string {
+  const forwardedHost = req.headers.get('x-forwarded-host');
+  const host = forwardedHost ?? req.headers.get('host');
+  const proto = req.headers.get('x-forwarded-proto')?.split(',')[0]?.trim() || 'https';
+  if (host) return `${proto}://${host.split(',')[0].trim()}`;
+  return req.nextUrl.origin;
+}
+
 /** Returns null when the merchant credentials (or a public return URL) are missing. */
-export function getFonepayConfig(): FonepayConfig | null {
+export function getFonepayConfig(returnUrlOverride?: string): FonepayConfig | null {
   const merchantCode = env('FONEPAY_MERCHANT_ID');
   const secret = env('FONEPAY_SECRET_KEY');
-  const returnUrl = getFonepayReturnUrl();
+  const returnUrl = returnUrlOverride?.trim() || getFonepayReturnUrl();
   if (!merchantCode || !secret || !returnUrl) return null;
 
   const sandbox = env('FONEPAY_ENV') !== 'production';
