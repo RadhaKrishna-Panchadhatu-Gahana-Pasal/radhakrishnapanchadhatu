@@ -126,6 +126,8 @@ Required for a production launch:
 | `APP_URL` | Absolute origin used in canonical URLs and metadata |
 | `NEXT_PUBLIC_APP_URL` | Same origin, exposed to the browser |
 | `STORE_DATA_FILE` | Optional path for the JSON shop database |
+| `UPLOADS_DIR` | Optional path for images uploaded from the admin panel |
+| `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` | Free-tier WhatsApp Cloud API order notifications (no paid SMS needed) |
 
 Optional integrations (each degrades gracefully when unset):
 
@@ -142,19 +144,37 @@ Payment gateway credentials (`ESEWA_*`, `KHALTI_*`, `FONEPAY_*`) are reserved bu
 
 ## Payments
 
-**Online payment is a simulation, not a live gateway integration.**
+Which methods appear at checkout depends on the environment (`lib/payments/availability.ts`):
 
-At checkout an order is created with `paymentStatus: INITIATED` and a provider reference, and the customer completes a simulated gateway step that posts the outcome to `/api/payments/verify`. No request is made to eSewa, Khalti or Fonepay, and no provider signature is verified.
+| Method | Production | Local dev / preview |
+|---|---|---|
+| Fonepay QR | Live once `FONEPAY_MERCHANT_ID` + `FONEPAY_SECRET_KEY` are set — otherwise **Coming soon** | Sandbox / test |
+| eSewa | **Coming soon** (no merchant account yet) | Sandbox / test |
+| Khalti | **Coming soon** (no merchant account yet) | Sandbox / test |
+| Cash on Delivery | Live, subject to per-province availability | Live |
 
-Do not enable online payment for real customers until:
+The shop has a Fonepay merchant account; eSewa and Khalti stay visible at checkout but disabled and labelled "Coming soon" until their onboarding completes. Store-level toggles in `/admin/settings` can switch any method off entirely, and the server rejects any method that is not selectable.
 
-1. Merchant accounts are approved by each provider,
-2. a server-initiated payment request replaces the simulated step, and
-3. provider callbacks/signatures are verified server-side.
+**What "sandbox" means today:** the checkout creates the order with `paymentStatus: INITIATED` and completes a simulated gateway step that posts the outcome to `/api/payments/verify`. No request reaches a provider and no provider signature is verified, so a customer can currently mark their own order paid. That is fine for development and previews only.
+
+Before Fonepay is enabled for real customers:
+
+1. Add the Fonepay merchant credentials to the environment,
+2. replace the simulated step with a server-initiated Fonepay payment request,
+3. verify Fonepay's response signature server-side before marking an order paid.
 
 Cash on Delivery works end to end today, including per-province availability.
 
 ---
+
+## Image Uploads
+
+Admins can add images two ways from `/admin/media`:
+
+- **From this device** — `POST /api/admin/media/upload` accepts JPG, PNG, WebP, GIF or AVIF up to 5 MB, stores the file under `UPLOADS_DIR` (default `.data/uploads`) and serves it from `/api/media/<file>`.
+- **From the web** — paste an existing site path or external URL and register it.
+
+Product, category and banner forms accept the resulting `/api/media/...` URL. Device uploads need a writable disk, so they work on a VPS or local machine but not on Vercel; there, use an external image URL.
 
 ## Order Tracking & Reviews
 
@@ -226,7 +246,8 @@ Done:
 Remaining:
 
 - ⬜ Wire Prisma/PostgreSQL so the shop can run on serverless hosting
-- ⬜ Replace simulated payments with real eSewa / Khalti / Fonepay requests and verified callbacks
+- ⬜ Replace the simulated gateway step with server-verified Fonepay requests and callbacks (eSewa and Khalti after onboarding)
+- ✅ WhatsApp order notifications wired; add approved message templates for customers who have not messaged the shop first
 - ⬜ Migrate admin auth to Auth.js with per-user roles (currently allowlist + passcode)
 - ⬜ Email/SMS/WhatsApp order notifications
 - ⬜ Object storage uploads for product and banner images

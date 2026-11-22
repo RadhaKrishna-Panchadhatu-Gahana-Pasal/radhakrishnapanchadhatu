@@ -9,6 +9,7 @@ import { useStore } from '@/components/providers/store-provider';
 import { formatNPR } from '@/lib/store/money';
 import { saveTrackedOrderToken } from '@/lib/store/order-history';
 import type { PaymentMethod } from '@/lib/store/types';
+import type { PaymentProviderState } from '@/lib/payments/availability';
 
 const NEPAL_PROVINCES = [
   'Lumbini Province',
@@ -39,8 +40,10 @@ interface PendingGatewayOrder {
 export function CheckoutClient({
   mapsApiKey,
   paymentOptions,
+  providers,
 }: {
   mapsApiKey: string;
+  providers: PaymentProviderState[];
   paymentOptions: {
     codEnabled: boolean;
     esewaEnabled: boolean;
@@ -64,15 +67,25 @@ export function CheckoutClient({
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState('');
 
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
-    paymentOptions.esewaEnabled
-      ? 'ESEWA'
-      : paymentOptions.khaltiEnabled
-      ? 'KHALTI'
-      : paymentOptions.fonepayEnabled
-      ? 'FONEPAY'
-      : 'COD'
-  );
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(() => {
+    const firstSelectableOnline = providers.find(
+      (provider) => provider.method !== 'COD' && provider.selectable
+    );
+    if (firstSelectableOnline) return firstSelectableOnline.method;
+    return paymentOptions.codEnabled ? 'COD' : 'FONEPAY';
+  });
+
+  const providerFor = (method: PaymentMethod) => providers.find((p) => p.method === method);
+
+  const providerBadge = (method: PaymentMethod) => {
+    const status = providerFor(method)?.status;
+    if (!status || status === 'LIVE') return null;
+    return (
+      <span className="ml-2 rounded-full bg-sand px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted">
+        {status === 'COMING_SOON' ? 'Coming soon' : 'Sandbox'}
+      </span>
+    );
+  };
 
   const [quote, setQuote] = useState<QuoteState>({
     discountPaisa: 0,
@@ -414,60 +427,84 @@ export function CheckoutClient({
               </p>
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {paymentOptions.esewaEnabled && (
+                {providerFor('ESEWA') && (
                   <label
                     className={`flex cursor-pointer items-center justify-between rounded-xl border p-4 transition ${
-                      paymentMethod === 'ESEWA' ? 'border-gold bg-gold/10' : 'border-line'
+                      !providerFor('ESEWA')?.selectable
+                        ? 'cursor-not-allowed border-line opacity-60'
+                        : paymentMethod === 'ESEWA'
+                        ? 'cursor-pointer border-gold bg-gold/10'
+                        : 'cursor-pointer border-line'
                     }`}
                   >
                     <div>
-                      <p className="text-sm font-semibold text-ink">eSewa Wallet</p>
-                      <p className="text-xs text-muted">Instant NPR wallet verification</p>
+                      <p className="text-sm font-semibold text-ink">
+                        eSewa Wallet
+                        {providerBadge('ESEWA')}
+                      </p>
+                      <p className="text-xs text-muted">{providerFor('ESEWA')?.note}</p>
                     </div>
                     <input
                       type="radio"
                       name="paymentMethod"
                       checked={paymentMethod === 'ESEWA'}
+                      disabled={!providerFor('ESEWA')?.selectable}
                       onChange={() => setPaymentMethod('ESEWA')}
                       className="accent-gold"
                     />
                   </label>
                 )}
 
-                {paymentOptions.khaltiEnabled && (
+                {providerFor('KHALTI') && (
                   <label
                     className={`flex cursor-pointer items-center justify-between rounded-xl border p-4 transition ${
-                      paymentMethod === 'KHALTI' ? 'border-gold bg-gold/10' : 'border-line'
+                      !providerFor('KHALTI')?.selectable
+                        ? 'cursor-not-allowed border-line opacity-60'
+                        : paymentMethod === 'KHALTI'
+                        ? 'cursor-pointer border-gold bg-gold/10'
+                        : 'cursor-pointer border-line'
                     }`}
                   >
                     <div>
-                      <p className="text-sm font-semibold text-ink">Khalti Digital</p>
-                      <p className="text-xs text-muted">Wallet &amp; mobile banking</p>
+                      <p className="text-sm font-semibold text-ink">
+                        Khalti Digital
+                        {providerBadge('KHALTI')}
+                      </p>
+                      <p className="text-xs text-muted">{providerFor('KHALTI')?.note}</p>
                     </div>
                     <input
                       type="radio"
                       name="paymentMethod"
                       checked={paymentMethod === 'KHALTI'}
+                      disabled={!providerFor('KHALTI')?.selectable}
                       onChange={() => setPaymentMethod('KHALTI')}
                       className="accent-gold"
                     />
                   </label>
                 )}
 
-                {paymentOptions.fonepayEnabled && (
+                {providerFor('FONEPAY') && (
                   <label
                     className={`flex cursor-pointer items-center justify-between rounded-xl border p-4 transition ${
-                      paymentMethod === 'FONEPAY' ? 'border-gold bg-gold/10' : 'border-line'
+                      !providerFor('FONEPAY')?.selectable
+                        ? 'cursor-not-allowed border-line opacity-60'
+                        : paymentMethod === 'FONEPAY'
+                        ? 'cursor-pointer border-gold bg-gold/10'
+                        : 'cursor-pointer border-line'
                     }`}
                   >
                     <div>
-                      <p className="text-sm font-semibold text-ink">Fonepay QR</p>
-                      <p className="text-xs text-muted">Nepal bank QR verification</p>
+                      <p className="text-sm font-semibold text-ink">
+                        Fonepay QR
+                        {providerBadge('FONEPAY')}
+                      </p>
+                      <p className="text-xs text-muted">{providerFor('FONEPAY')?.note}</p>
                     </div>
                     <input
                       type="radio"
                       name="paymentMethod"
                       checked={paymentMethod === 'FONEPAY'}
+                      disabled={!providerFor('FONEPAY')?.selectable}
                       onChange={() => setPaymentMethod('FONEPAY')}
                       className="accent-gold"
                     />

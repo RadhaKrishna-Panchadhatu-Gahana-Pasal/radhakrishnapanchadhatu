@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { sendWhatsAppOrderConfirmation } from '@/lib/notifications/whatsapp';
 import { calculateDeliveryFee, createServerOrder, getStore } from '@/lib/store/repository';
 
 const CheckoutSchema = z.object({
@@ -91,6 +92,18 @@ export async function POST(req: NextRequest) {
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
+
+    // Free WhatsApp notification instead of paid SMS. Never blocks the order:
+    // the helper returns { sent: false } when the Cloud API is not configured.
+    const appOrigin = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
+    await sendWhatsAppOrderConfirmation({
+      toPhone: result.order.customerPhone,
+      customerName: result.order.customerName,
+      orderNumber: result.order.orderNumber,
+      totalPaisa: result.order.totalPaisa,
+      itemCount: result.order.items.reduce((sum, item) => sum + item.quantity, 0),
+      trackingUrl: appOrigin ? `${appOrigin}/track-order/${result.order.trackingToken}` : undefined,
+    });
 
     return NextResponse.json({
       orderNumber: result.order.orderNumber,

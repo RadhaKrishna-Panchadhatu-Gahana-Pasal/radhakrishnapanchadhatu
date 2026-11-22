@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { getPaymentProviderStates } from '@/lib/payments/availability';
 import { loadStoreFromDisk, saveStoreToDisk } from './persistence';
 import type {
   AdminAuditLog,
@@ -822,17 +823,17 @@ export function createServerOrder(input: {
 }): { ok: true; order: Order } | { ok: false; error: string } {
   const store = getStore();
 
-  if (input.paymentMethod === 'COD' && !store.settings.codEnabled) {
-    return { ok: false, error: 'Cash on Delivery is currently disabled.' };
-  }
-  if (input.paymentMethod === 'ESEWA' && !store.settings.esewaEnabled) {
-    return { ok: false, error: 'eSewa is currently disabled.' };
-  }
-  if (input.paymentMethod === 'KHALTI' && !store.settings.khaltiEnabled) {
-    return { ok: false, error: 'Khalti is currently disabled.' };
-  }
-  if (input.paymentMethod === 'FONEPAY' && !store.settings.fonepayEnabled) {
-    return { ok: false, error: 'Fonepay is currently disabled.' };
+  const paymentProvider = getPaymentProviderStates(store.settings).find(
+    (provider) => provider.method === input.paymentMethod
+  );
+  if (!paymentProvider || !paymentProvider.selectable) {
+    return {
+      ok: false,
+      error:
+        paymentProvider?.status === 'COMING_SOON'
+          ? `${paymentProvider.label} is not available yet. Please choose another payment method.`
+          : 'This payment method is currently unavailable.',
+    };
   }
 
   const orderItems: OrderItem[] = [];
