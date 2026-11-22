@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getAdminSession } from '@/lib/store/auth';
-import { appendAuditLog, getStore, nowIso, uid } from '@/lib/store/repository';
+import {
+  appendAuditLog,
+  flushStore,
+  getStore,
+  hydrateStore,
+  nowIso,
+  uid,
+} from '@/lib/store/repository';
 import { paisaFromNPR } from '@/lib/store/money';
 
 export const dynamic = 'force-dynamic';
@@ -30,6 +37,7 @@ export async function GET() {
   const session = getAdminSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  await hydrateStore();
   const store = getStore();
   return NextResponse.json({
     products: store.products,
@@ -49,6 +57,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid product fields.' }, { status: 400 });
     }
 
+    await hydrateStore();
     const store = getStore();
     const cleanSlug = parsed.data.slug
       .trim()
@@ -135,6 +144,7 @@ export async function POST(req: NextRequest) {
       summary: `Created product "${product.name}" (${product.status}).`,
     });
 
+    await flushStore();
     return NextResponse.json({ product }, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'Unable to create product.' }, { status: 500 });

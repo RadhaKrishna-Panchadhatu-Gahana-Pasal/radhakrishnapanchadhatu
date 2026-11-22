@@ -7,9 +7,10 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // No directUrl on purpose: the shop's CMS/orders live in a single JSONB row
+  // (see lib/store/postgres.ts), so only one connection string is ever used.
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

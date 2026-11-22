@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getAdminSession } from '@/lib/store/auth';
-import { appendAuditLog, getStore, saveStore, uid } from '@/lib/store/repository';
+import {
+  appendAuditLog,
+  flushStore,
+  getStore,
+  hydrateStore,
+  saveStore,
+  uid,
+} from '@/lib/store/repository';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +24,7 @@ const CategorySchema = z.object({
 export async function GET() {
   const session = getAdminSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  await hydrateStore();
   const store = getStore();
   return NextResponse.json({
     categories: [...store.categories].sort((a, b) => a.sortOrder - b.sortOrder),
@@ -33,6 +41,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid category payload.' }, { status: 400 });
   }
 
+  await hydrateStore();
   const store = getStore();
   const cleanSlug = parsed.data.slug.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-');
   if (store.categories.some((c) => c.slug === cleanSlug)) {
@@ -59,6 +68,7 @@ export async function POST(req: NextRequest) {
     summary: `Created category "${category.name}".`,
   });
 
+  await flushStore();
   return NextResponse.json({ category }, { status: 201 });
 }
 
@@ -67,6 +77,7 @@ export async function PATCH(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json();
+  await hydrateStore();
   const store = getStore();
   const cat = store.categories.find((c) => c.id === body.id);
   if (!cat) return NextResponse.json({ error: 'Category not found' }, { status: 404 });
@@ -85,6 +96,7 @@ export async function PATCH(req: NextRequest) {
     summary: `Updated category "${cat.name}".`,
   });
 
+  await flushStore();
   return NextResponse.json({ category: cat });
 }
 
@@ -94,6 +106,7 @@ export async function DELETE(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const id = searchParams.get('id');
+  await hydrateStore();
   const store = getStore();
 
   if (store.products.some((p) => p.categoryId === id && p.status !== 'ARCHIVED')) {
@@ -105,5 +118,6 @@ export async function DELETE(req: NextRequest) {
 
   store.categories = store.categories.filter((c) => c.id !== id);
   saveStore();
+  await flushStore();
   return NextResponse.json({ deleted: true });
 }

@@ -11,7 +11,7 @@ import { OfflineIndicator } from '@/components/pwa/offline-indicator';
 import { StoreProvider } from '@/components/providers/store-provider';
 import { getFirebaseClientConfig } from '@/lib/firebase/server-config';
 import { getSiteBaseUrl } from '@/lib/seo/metadata';
-import { getStore } from '@/lib/store/repository';
+import { getStore, hydrateStore } from '@/lib/store/repository';
 
 export const dynamic = 'force-dynamic';
 
@@ -78,7 +78,10 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Loads the saved store once per server instance: Postgres on Vercel,
+  // the local JSON file during development.
+  await hydrateStore();
   const store = getStore();
   const firebaseConfig = getFirebaseClientConfig();
   const activeAnnouncements = store.announcements

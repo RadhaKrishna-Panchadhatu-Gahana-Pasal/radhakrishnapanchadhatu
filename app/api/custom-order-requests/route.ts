@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createCustomOrderLead, getStore } from '@/lib/store/repository';
+import { createCustomOrderLead, flushStore, getStore, hydrateStore } from '@/lib/store/repository';
 import { buildCustomOrderWhatsAppUrl } from '@/lib/store/whatsapp';
 
 const CustomOrderSchema = z.object({
@@ -24,7 +24,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    await hydrateStore();
     const requestRecord = createCustomOrderLead(parsed.data);
+    await flushStore();
     const whatsappUrl = buildCustomOrderWhatsAppUrl({
       whatsappDigits: getStore().settings.whatsappDigits,
       referenceCode: requestRecord.referenceCode,

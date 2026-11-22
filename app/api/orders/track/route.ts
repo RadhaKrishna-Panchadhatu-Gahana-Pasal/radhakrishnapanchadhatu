@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getStore, toPublicTrackingView } from '@/lib/store/repository';
+import { getStore, hydrateStore, toPublicTrackingView } from '@/lib/store/repository';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
   const orderNumber = searchParams.get('orderNumber')?.trim().toUpperCase();
   const phone = searchParams.get('phone')?.replace(/\D/g, '') ?? '';
 
+  await hydrateStore();
   const store = getStore();
 
   if (token) {

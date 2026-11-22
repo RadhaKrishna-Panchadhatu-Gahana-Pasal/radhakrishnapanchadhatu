@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { sendWhatsAppOrderConfirmation } from '@/lib/notifications/whatsapp';
-import { calculateDeliveryFee, createServerOrder, getStore } from '@/lib/store/repository';
+import { buildFonepayPaymentUrl, getFonepayConfig } from '@/lib/payments/fonepay';
+import {
+  calculateDeliveryFee,
+  createServerOrder,
+  flushStore,
+  getStore,
+  hydrateStore,
+} from '@/lib/store/repository';
+
+export const runtime = 'nodejs';
 
 const CheckoutSchema = z.object({
   address: z.object({
@@ -35,6 +44,7 @@ export async function GET(req: NextRequest) {
   const subtotalPaisa = Number(searchParams.get('subtotalPaisa') || '0');
   const couponCode = (searchParams.get('couponCode') || '').trim().toUpperCase();
 
+  await hydrateStore();
   const store = getStore();
   let discountPaisa = 0;
   let couponMessage: string | null = null;
@@ -79,6 +89,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (parsed.data.paymentMethod === 'FONEPAY' && !getFonepayConfig()) {
+      return NextResponse.json(
+        {
+          error:
+            'Fonepay is not configured on this deployment yet. Please choose Cash on Delivery or contact the store on WhatsApp.',
+        },
+        { status: 503 }
+      );
+    }
+
+    await hydrateStore();
     const result = createServerOrder({
       address: {
         ...parsed.data.address,
@@ -91,6 +112,31 @@ export async function POST(req: NextRequest) {
 
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+
+    // Make the order durable before anything slow (gateway call, WhatsApp).
+    const orderSaved = await flushStore();
+    if (!orderSaved) {
+      return NextResponse.json(
+        {
+          error:
+            'We could not save your order right now. Please try again, or message us on WhatsApp.',
+        },
+        { status: 503 }
+      );
+    }
+
+    // Real Fonepay redirect: signed payment request, then server-side verification
+    let paymentUrl: string | undefined;
+    if (result.order.paymentMethod === 'FONEPAY') {
+      const fonepay = getFonepayConfig();
+      if (fonepay) {
+        paymentUrl = buildFonepayPaymentUrl(fonepay, {
+          reference: result.order.payment.providerReference,
+          amountPaisa: result.order.totalPaisa,
+          remark: `Order ${result.order.orderNumber}`,
+        });
+      }
     }
 
     // Free WhatsApp notification instead of paid SMS. Never blocks the order:
@@ -112,6 +158,7 @@ export async function POST(req: NextRequest) {
       paymentStatus: result.order.paymentStatus,
       totalPaisa: result.order.totalPaisa,
       providerReference: result.order.payment.providerReference,
+      paymentUrl,
     });
   } catch {
     return NextResponse.json({ error: 'Unable to process checkout.' }, { status: 500 });

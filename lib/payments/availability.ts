@@ -4,9 +4,11 @@ import type { PaymentMethod } from '@/lib/store/types';
  * Which payment methods a shopper may actually use, and how to label them.
  *
  * Rules for this shop:
- *  - Local development and Vercel previews run every online method in sandbox/test mode.
- *  - Production runs a method live only when that provider's merchant credentials
- *    are configured. Until then the method still appears, marked "Coming soon".
+ *  - Local development and Vercel previews run online methods in sandbox mode.
+ *    Fonepay only becomes selectable there once its sandbox credentials exist,
+ *    because it redirects to the real Fonepay test gateway (no simulation).
+ *  - Production runs a method live only when that provider's merchant
+ *    credentials are configured AND PAYMENTS_ALLOW_LIVE is "true".
  *
  * Only Fonepay merchant credentials are expected here today; eSewa and Khalti
  * stay visible as "Coming soon" until their onboarding completes.
@@ -28,6 +30,12 @@ export interface PaymentSettings {
   esewaEnabled: boolean;
   khaltiEnabled: boolean;
   fonepayEnabled: boolean;
+}
+
+export interface ProviderCredentials {
+  esewa: boolean;
+  khalti: boolean;
+  fonepay: boolean;
 }
 
 const PROVIDER_LABELS: Record<PaymentMethod, string> = {
@@ -59,8 +67,10 @@ function onlineProvider(input: {
   method: Exclude<PaymentMethod, 'COD'>;
   enabled: boolean;
   configured: boolean;
+  liveApproved: boolean;
   stage: DeploymentStage;
   sandboxNote: string;
+  requiresCredentialsInSandbox?: boolean;
 }): PaymentProviderState {
   const label = PROVIDER_LABELS[input.method];
 
@@ -75,6 +85,15 @@ function onlineProvider(input: {
   }
 
   if (input.stage !== 'production') {
+    if (input.requiresCredentialsInSandbox && !input.configured) {
+      return {
+        method: input.method,
+        label,
+        status: 'COMING_SOON',
+        selectable: false,
+        note: 'Add the Fonepay sandbox merchant code and secret key to test this method.',
+      };
+    }
     return {
       method: input.method,
       label,
@@ -84,7 +103,7 @@ function onlineProvider(input: {
     };
   }
 
-  if (input.configured) {
+  if (input.configured && input.liveApproved) {
     return {
       method: input.method,
       label,
@@ -106,7 +125,8 @@ function onlineProvider(input: {
 export function resolvePaymentProviders(input: {
   stage: DeploymentStage;
   settings: PaymentSettings;
-  configured: { esewa: boolean; khalti: boolean; fonepay: boolean };
+  configured: ProviderCredentials;
+  liveApproved: boolean;
 }): PaymentProviderState[] {
   const sandboxNote = 'Sandbox / test mode — no real money is transferred.';
 
@@ -115,6 +135,7 @@ export function resolvePaymentProviders(input: {
       method: 'ESEWA',
       enabled: input.settings.esewaEnabled,
       configured: input.configured.esewa,
+      liveApproved: input.liveApproved,
       stage: input.stage,
       sandboxNote,
     }),
@@ -122,6 +143,7 @@ export function resolvePaymentProviders(input: {
       method: 'KHALTI',
       enabled: input.settings.khaltiEnabled,
       configured: input.configured.khalti,
+      liveApproved: input.liveApproved,
       stage: input.stage,
       sandboxNote,
     }),
@@ -129,8 +151,10 @@ export function resolvePaymentProviders(input: {
       method: 'FONEPAY',
       enabled: input.settings.fonepayEnabled,
       configured: input.configured.fonepay,
+      liveApproved: input.liveApproved,
       stage: input.stage,
-      sandboxNote,
+      sandboxNote: 'Sandbox / test mode — redirects to the Fonepay test gateway.',
+      requiresCredentialsInSandbox: true,
     }),
     {
       method: 'COD',
@@ -145,25 +169,25 @@ export function resolvePaymentProviders(input: {
 }
 
 /**
- * Server-side entry point: reads env credentials and current stage.
+ * Server-side entry point: reads env credentials and the current stage.
  *
- * A provider only goes LIVE in production when its credentials exist AND
- * PAYMENTS_ALLOW_LIVE is explicitly "true". The switch exists because the
- * gateway handshake is still simulated: without it, adding Fonepay keys would
- * show customers "Live" on a flow that never contacts Fonepay.
+ * LIVE additionally requires PAYMENTS_ALLOW_LIVE="true" so a deployment cannot
+ * start taking real money just because keys were added by accident.
  */
 export function getPaymentProviderStates(settings: PaymentSettings): PaymentProviderState[] {
   const liveApproved = process.env.PAYMENTS_ALLOW_LIVE === 'true';
+  const appOrigin = Boolean(process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL);
 
   return resolvePaymentProviders({
     stage: getDeploymentStage(),
     settings,
+    liveApproved,
     configured: {
-      esewa:
-        liveApproved && Boolean(process.env.ESEWA_PRODUCT_CODE && process.env.ESEWA_SECRET_KEY),
-      khalti: liveApproved && Boolean(process.env.KHALTI_SECRET_KEY),
-      fonepay:
-        liveApproved && Boolean(process.env.FONEPAY_MERCHANT_ID && process.env.FONEPAY_SECRET_KEY),
+      esewa: Boolean(process.env.ESEWA_PRODUCT_CODE && process.env.ESEWA_SECRET_KEY),
+      khalti: Boolean(process.env.KHALTI_SECRET_KEY),
+      fonepay: Boolean(
+        process.env.FONEPAY_MERCHANT_ID && process.env.FONEPAY_SECRET_KEY && appOrigin
+      ),
     },
   });
 }

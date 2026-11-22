@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getStore, submitVerifiedReview } from '@/lib/store/repository';
+import { flushStore, getStore, hydrateStore, submitVerifiedReview } from '@/lib/store/repository';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +17,7 @@ const ReviewSchema = z.object({
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const productId = searchParams.get('productId');
+  await hydrateStore();
   const store = getStore();
   const reviews = store.reviews.filter(
     (r) => r.status === 'APPROVED' && (!productId || r.productId === productId)
@@ -38,6 +39,7 @@ export async function POST(req: NextRequest) {
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
+    await flushStore();
     return NextResponse.json({ review: result.review }, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'Unable to submit review.' }, { status: 500 });

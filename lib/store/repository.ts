@@ -1,6 +1,13 @@
 import crypto from 'crypto';
 import { getPaymentProviderStates } from '@/lib/payments/availability';
-import { loadStoreFromDisk, saveStoreToDisk } from './persistence';
+import {
+  flushStoreWrites,
+  getPersistenceBackend,
+  isDatabaseConfigured,
+  loadStoreSnapshot,
+  queueStoreSave,
+  saveStoreToDisk,
+} from './persistence';
 import type {
   AdminAuditLog,
   AdminRole,
@@ -686,22 +693,106 @@ function createInitialDatabase(): StoreDatabase {
   };
 }
 
-const globalForStore = globalThis as unknown as { __rkpStore?: StoreDatabase };
+const globalForStore = globalThis as unknown as {
+  __rkpStore?: StoreDatabase;
+  __rkpHydration?: Promise<void>;
+  __rkpHydrationState?: 'pending' | 'ready' | 'failed';
+};
 
 export function getStore(): StoreDatabase {
   if (!globalForStore.__rkpStore) {
-    globalForStore.__rkpStore = loadStoreFromDisk() ?? createInitialDatabase();
+    globalForStore.__rkpStore = createInitialDatabase();
   }
   return globalForStore.__rkpStore;
 }
 
+type HydrationState = 'pending' | 'ready' | 'failed';
+
+function hydrationState(): HydrationState {
+  return globalForStore.__rkpHydrationState ?? 'pending';
+}
+
+let warnedAboutUnhydratedWrite = false;
+
+function warnUnhydratedWriteOnce() {
+  if (warnedAboutUnhydratedWrite) return;
+  warnedAboutUnhydratedWrite = true;
+  console.warn(
+    '[store] Refusing to save: the persisted snapshot has not been loaded yet, so writing now ' +
+      'could overwrite real CMS content and orders with seed data.'
+  );
+}
+
 /**
- * Persist the current store to disk. Called after every mutation so CMS edits,
- * orders and settings survive a server restart. Safe to call when nothing
- * changed and safe on read-only filesystems (it logs once and gives up).
+ * Loads the persisted store (Postgres when DATABASE_URL is set, otherwise the
+ * local JSON file) into memory. Safe to call on every request: the real work
+ * happens once per server instance.
+ */
+export async function hydrateStore(): Promise<void> {
+  if (hydrationState() !== 'pending') return;
+  if (globalForStore.__rkpHydration) return globalForStore.__rkpHydration;
+
+  const run = (async () => {
+    try {
+      const snapshot = await loadStoreSnapshot();
+      if (snapshot) {
+        globalForStore.__rkpStore = snapshot;
+      } else {
+        const seeded = getStore();
+        if (isDatabaseConfigured()) {
+          queueStoreSave(seeded);
+          const saved = await flushStoreWrites();
+          if (!saved) throw new Error('Could not write the initial store snapshot.');
+        } else {
+          saveStoreToDisk(seeded);
+        }
+      }
+      globalForStore.__rkpHydrationState = 'ready';
+    } catch (error) {
+      globalForStore.__rkpHydrationState = 'failed';
+      console.error(
+        '[store] Could not load the persisted store. Pages keep serving seed data and writes stay ' +
+          'blocked so a live database is never overwritten.',
+        error instanceof Error ? error.message : error
+      );
+    } finally {
+      globalForStore.__rkpHydration = undefined;
+    }
+  })();
+
+  globalForStore.__rkpHydration = run;
+  return run;
+}
+
+/** Waits for queued Postgres writes so a response is only sent once data is durable. */
+export async function flushStore(): Promise<boolean> {
+  if (!isDatabaseConfigured()) return true;
+  return flushStoreWrites();
+}
+
+export function getStoreStorage(): 'database' | 'file' {
+  return getPersistenceBackend();
+}
+
+export function isStoreHydrated(): boolean {
+  return hydrationState() === 'ready';
+}
+
+/**
+ * Persist the current store. Called after every mutation so CMS edits, orders
+ * and settings survive a restart: Postgres when configured, otherwise the
+ * local JSON file. Safe to call when nothing changed.
  */
 export function saveStore(): boolean {
   if (!globalForStore.__rkpStore) return false;
+  if (isDatabaseConfigured()) {
+    if (hydrationState() !== 'ready') {
+      warnUnhydratedWriteOnce();
+      return false;
+    }
+    queueStoreSave(globalForStore.__rkpStore);
+    return true;
+  }
   return saveStoreToDisk(globalForStore.__rkpStore);
 }
 
@@ -987,11 +1078,27 @@ export function createServerOrder(input: {
   return { ok: true, order };
 }
 
+/** Finds an order by the gateway reference we generated (PRN). */
+export function findOrderForPaymentReference(reference: string): Order | null {
+  const ref = reference.trim().toUpperCase();
+  if (!ref) return null;
+  const store = getStore();
+  return (
+    store.orders.find(
+      (o) =>
+        o.payment.providerReference.toUpperCase() === ref ||
+        o.orderNumber.toUpperCase() === ref
+    ) ?? null
+  );
+}
+
 export function verifyServerPayment(params: {
   orderNumber: string;
   trackingToken: string;
   providerReference: string;
   outcome: 'PAID' | 'FAILED' | 'CANCELLED';
+  /** Bank/gateway transaction id returned by the payment network, stored for reconciliation. */
+  gatewayReference?: string;
 }): { ok: true; order: Order; idempotentReplay: boolean } | { ok: false; error: string } {
   const store = getStore();
   const order = store.orders.find(
@@ -1010,6 +1117,7 @@ export function verifyServerPayment(params: {
   order.payment.status = params.outcome;
   order.paymentStatus = params.outcome;
   order.payment.providerReference = params.providerReference || order.payment.providerReference;
+  if (params.gatewayReference) order.payment.gatewayReference = params.gatewayReference;
 
   if (params.outcome === 'PAID') {
     order.payment.verifiedAt = timestamp;

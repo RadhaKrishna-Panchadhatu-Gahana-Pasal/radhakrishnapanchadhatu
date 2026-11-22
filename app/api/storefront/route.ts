@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getStore } from '@/lib/store/repository';
+import { getStore, hydrateStore } from '@/lib/store/repository';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  await hydrateStore();
   const store = getStore();
   return NextResponse.json({
     settings: store.settings,

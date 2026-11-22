@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSession } from '@/lib/store/auth';
-import { getStore, updateOrderAdmin } from '@/lib/store/repository';
+import { flushStore, getStore, hydrateStore, updateOrderAdmin } from '@/lib/store/repository';
 import type { FulfilmentStatus, PaymentStatus } from '@/lib/store/types';
 
 export const dynamic = 'force-dynamic';
@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
   const paymentStatus = searchParams.get('paymentStatus');
   const q = searchParams.get('q')?.trim().toLowerCase();
 
+  await hydrateStore();
   let orders = getStore().orders;
   if (status && status !== 'ALL') {
     orders = orders.filter((o) => o.fulfilmentStatus === status);
@@ -57,5 +58,6 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Order not found' }, { status: 404 });
   }
 
+  await flushStore();
   return NextResponse.json({ order: updated });
 }

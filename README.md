@@ -34,7 +34,7 @@ Premium Panchadhatu and steel jewellery storefront for a Nepal-based retailer in
 | Maps | Google Maps JS API (optional) |
 | PWA | Web manifest + service worker + offline indicator |
 
-> `prisma/schema.prisma` and `prisma/seed.ts` describe a planned PostgreSQL model. **They are not wired into the running app** — nothing imports `lib/prisma.ts`. See [Roadmap](#roadmap).
+> The app stores CMS content and orders as one JSONB snapshot via Prisma (`lib/store/postgres.ts`). `prisma/schema.prisma` also contains a fully normalised model and `prisma/seed.ts`, which are not used at runtime — the snapshot keeps the existing synchronous domain intact. See [Roadmap](#roadmap).
 
 ---
 
@@ -101,17 +101,23 @@ Every admin write is recorded in the audit log (`/admin` dashboard) with actor, 
 
 ## Data & Persistence
 
-The whole shop — catalogue, CMS content, orders, enquiries, reviews, audit log — is one `StoreDatabase` object.
+The whole shop — catalogue, CMS content, orders, enquiries, reviews, audit log — is one `StoreDatabase` object, stored as a single JSONB row (`store_state`) in Postgres or as `.data/store.json` locally.
 
-- On start-up the app loads `.data/store.json` if it exists, otherwise it seeds fresh data.
-- Every mutation (admin save, checkout, review, enquiry, custom-order lead) writes the file back atomically.
-- Override the location with `STORE_DATA_FILE` (absolute or relative path).
+- **With `DATABASE_URL` set** (production, and any serverless host): the snapshot is read from Postgres once per server start and written back after every mutation. `lib/store/postgres.ts` creates the `store_state` table on first use, so there is no migration step.
+- **Without `DATABASE_URL`** (plain local development): `.data/store.json` is loaded and rewritten atomically — override the path with `STORE_DATA_FILE`.
+- Reads are synchronous from an in-memory cache; `hydrateStore()` fills it from `instrumentation.ts` and from `app/layout.tsx` before anything renders.
+- Mutating API routes `await flushStore()` before responding, so a serverless instance is never frozen between a change and its save.
+- If Postgres is configured but unreachable the app keeps serving seed data and **blocks writes**, rather than overwriting live orders with seed data.
 
-**Backing up the shop = copying that one file.** Add it to your backup routine.
+**Backing up the shop** = backing up the `store_state` row (or copying the JSON file when running file-backed).
 
-### Hosting caveat
+### Free Postgres setup (Vercel)
 
-This design needs a writable disk. It is fine on a VPS, a local machine, or Docker with a volume. On a read-only/ephemeral filesystem such as **Vercel**, the app still runs but writes fail — it logs one warning and keeps the data in memory, so catalogue edits and orders are lost between requests and deploys. To run on serverless, the Prisma/PostgreSQL layer must be wired first (see Roadmap).
+1. Create a free database on Neon or Supabase.
+2. Copy the **pooled** connection string and set it as `DATABASE_URL` in Vercel → Settings → Environment Variables (Production and Preview). It should look like `postgresql://user:pass@ep-xxx-pooler.region.aws.neon.tech/neondb?sslmode=require&pgbouncer=true`.
+3. Redeploy. The first request creates `store_state` and writes the current seed/JSON snapshot into it.
+
+A JSONB snapshot is intentionally simple and keeps the whole domain synchronous. It is last-write-wins across concurrent instances, which is fine for one shop with a handful of admins and orders — a normalised order table would be the next step if write contention ever matters.
 
 ---
 
@@ -125,7 +131,8 @@ Required for a production launch:
 | `ADMIN_PASSCODE` | Admin panel passcode |
 | `APP_URL` | Absolute origin used in canonical URLs and metadata |
 | `NEXT_PUBLIC_APP_URL` | Same origin, exposed to the browser |
-| `STORE_DATA_FILE` | Optional path for the JSON shop database |
+| `DATABASE_URL` | Postgres connection string — required for persistence on Vercel; blank locally to use the JSON file |
+| `STORE_DATA_FILE` | Optional path for the local JSON shop database (file mode only) |
 | `UPLOADS_DIR` | Optional path for images uploaded from the admin panel |
 | `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` | Free-tier WhatsApp Cloud API order notifications (no paid SMS needed) |
 
@@ -148,23 +155,25 @@ Which methods appear at checkout depends on the environment (`lib/payments/avail
 
 | Method | Production | Local dev / preview |
 |---|---|---|
-| Fonepay QR | Live once `FONEPAY_MERCHANT_ID` + `FONEPAY_SECRET_KEY` are set — otherwise **Coming soon** | Sandbox / test |
+| Fonepay QR | Live once `FONEPAY_MERCHANT_ID` + `FONEPAY_SECRET_KEY` are set and `PAYMENTS_ALLOW_LIVE=true` — otherwise **Coming soon** | Sandbox, requires the same credentials; without them the option is disabled |
 | eSewa | **Coming soon** (no merchant account yet) | Sandbox / test |
 | Khalti | **Coming soon** (no merchant account yet) | Sandbox / test |
 | Cash on Delivery | Live, subject to per-province availability | Live |
 
 The shop has a Fonepay merchant account; eSewa and Khalti stay visible at checkout but disabled and labelled "Coming soon" until their onboarding completes. Store-level toggles in `/admin/settings` can switch any method off entirely, and the server rejects any method that is not selectable.
 
-**What "sandbox" means today:** the checkout creates the order with `paymentStatus: INITIATED` and completes a simulated gateway step that posts the outcome to `/api/payments/verify`. No request reaches a provider and no provider signature is verified, so a customer can currently mark their own order paid. That is fine for development and previews only.
+### Fonepay (real gateway)
 
-Before Fonepay is enabled for real customers:
+`lib/payments/fonepay.ts` implements the clientapi redirect flow:
 
-1. Add the Fonepay merchant credentials to the environment,
-2. replace the simulated step with a server-initiated Fonepay payment request,
-3. verify Fonepay's response signature server-side before marking an order paid,
-4. set `PAYMENTS_ALLOW_LIVE=true`.
+1. Checkout creates the order with `paymentStatus: INITIATED` and the API returns a signed payment URL (`PID,MD,PRN,AMT,CRN,DT,R1,R2,RU` hashed with HMAC-SHA512). The browser is sent to Fonepay's hosted page.
+2. Fonepay redirects the shopper to `/api/payments/fonepay/callback` with `PRN`/`BID`/`UID`. Those parameters are treated as *a pointer*, never as proof of payment.
+3. The callback calls Fonepay's `verificationMerchant` endpoint server-to-server (`PID,AMT,PRN,BID,UID` signature), compares the returned amount with the stored order total, and only then marks the order `PAID` (with the Fonepay UID kept as `gatewayReference`).
+4. Repeated callbacks and refreshed tabs are idempotent; failed or unverifiable payments leave the order `INITIATED`/`FAILED` and redirect to the tracking page.
 
-Step 4 is deliberately separate: credentials alone never make a method Live, so a half-finished integration cannot start advertising itself to customers.
+`FONEPAY_ENV=sandbox` uses `https://dev-clientapi.fonepay.com`, `FONEPAY_ENV=production` uses `https://clientapi.fonepay.com`. The return URL must be publicly reachable, so for local testing set `FONEPAY_RETURN_URL` to a tunnel.
+
+`/api/payments/verify` still exists only for eSewa/Khalti **sandbox** settlement: it is disabled in production and refuses Fonepay orders outright. Cash on Delivery works end to end today, including per-province availability.
 
 Cash on Delivery works end to end today, including per-province availability.
 
@@ -248,8 +257,8 @@ Done:
 
 Remaining:
 
-- ⬜ Wire Prisma/PostgreSQL so the shop can run on serverless hosting
-- ⬜ Replace the simulated gateway step with server-verified Fonepay requests and callbacks (eSewa and Khalti after onboarding)
+- ✅ Postgres persistence (`store_state` JSONB snapshot) for Vercel, with the local JSON file kept for development
+- ✅ Server-verified Fonepay redirect + callback (eSewa and Khalti still sandbox-only after their onboarding)
 - ✅ WhatsApp order notifications wired; add approved message templates for customers who have not messaged the shop first
 - ⬜ Migrate admin auth to Auth.js with per-user roles (currently allowlist + passcode)
 - ⬜ Email/SMS/WhatsApp order notifications

@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSession } from '@/lib/store/auth';
-import { appendAuditLog, getStore, nowIso, saveStore, uid } from '@/lib/store/repository';
+import {
+  appendAuditLog,
+  flushStore,
+  getStore,
+  hydrateStore,
+  nowIso,
+  saveStore,
+  uid,
+} from '@/lib/store/repository';
 import { paisaFromNPR } from '@/lib/store/money';
 
 export const dynamic = 'force-dynamic';
@@ -9,6 +17,7 @@ export async function GET() {
   const session = getAdminSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  await hydrateStore();
   const store = getStore();
   return NextResponse.json({
     settings: store.settings,
@@ -30,7 +39,19 @@ export async function GET() {
 export async function PATCH(req: NextRequest) {
   const response = await applyCmsPatch(req);
   // Persist whatever the editor changed so CMS content survives a restart.
-  if (response.status < 400) saveStore();
+  if (response.status < 400) {
+    saveStore();
+    const saved = await flushStore();
+    if (!saved) {
+      return NextResponse.json(
+        {
+          error:
+            'The change was applied but could not be saved. Check the database connection and try again.',
+        },
+        { status: 503 }
+      );
+    }
+  }
   return response;
 }
 
@@ -39,6 +60,7 @@ async function applyCmsPatch(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json();
+  await hydrateStore();
   const store = getStore();
 
   switch (body.resource) {

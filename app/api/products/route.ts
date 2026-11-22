@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getStore, queryPublicProducts } from '@/lib/store/repository';
+import { getStore, hydrateStore, queryPublicProducts } from '@/lib/store/repository';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const slug = searchParams.get('slug');
+  await hydrateStore();
   const store = getStore();
 
   if (slug) {

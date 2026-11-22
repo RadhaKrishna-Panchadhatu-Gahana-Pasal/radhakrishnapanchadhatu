@@ -152,6 +152,8 @@ export interface PaymentRecord {
   currency: 'NPR';
   status: PaymentStatus;
   providerReference: string;
+  /** Transaction id returned by the payment network (e.g. Fonepay UID). */
+  gatewayReference?: string;
   idempotencyKey: string;
   verifiedAt?: string;
   createdAt: string;

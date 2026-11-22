@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSession } from '@/lib/store/auth';
-import { appendAuditLog, getStore, nowIso, uid } from '@/lib/store/repository';
+import {
+  appendAuditLog,
+  flushStore,
+  getStore,
+  hydrateStore,
+  nowIso,
+  uid,
+} from '@/lib/store/repository';
 import { paisaFromNPR } from '@/lib/store/money';
 
 export const dynamic = 'force-dynamic';
@@ -12,6 +19,7 @@ export async function PATCH(
   const session = getAdminSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  await hydrateStore();
   const store = getStore();
   const product = store.products.find((p) => p.id === params.id || p.slug === params.id);
   if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 });
@@ -84,6 +92,7 @@ export async function PATCH(
     summary: `Updated "${product.name}" (Stock: ${product.stockQuantity}, Status: ${product.status}).`,
   });
 
+  await flushStore();
   return NextResponse.json({ product });
 }
 
@@ -94,6 +103,7 @@ export async function DELETE(
   const session = getAdminSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  await hydrateStore();
   const store = getStore();
   const product = store.products.find((p) => p.id === params.id);
   if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 });
@@ -111,5 +121,6 @@ export async function DELETE(
     summary: `Archived product "${product.name}".`,
   });
 
+  await flushStore();
   return NextResponse.json({ product });
 }

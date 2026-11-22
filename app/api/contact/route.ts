@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getStore, nowIso, saveStore, uid } from '@/lib/store/repository';
+import { flushStore, getStore, hydrateStore, nowIso, saveStore, uid } from '@/lib/store/repository';
 
 const ContactSchema = z.object({
   name: z.string().min(2).max(120),
@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: 'Please fill in your name, phone, and message.' }, { status: 400 });
     }
+    await hydrateStore();
     const store = getStore();
     const enquiry = {
       id: uid('enq'),
@@ -27,6 +28,7 @@ export async function POST(req: NextRequest) {
     };
     store.contactEnquiries.unshift(enquiry);
     saveStore();
+    await flushStore();
     return NextResponse.json({ enquiry }, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'Unable to send message.' }, { status: 500 });

@@ -35,6 +35,7 @@ interface PendingGatewayOrder {
   paymentMethod: PaymentMethod;
   totalPaisa: number;
   providerReference: string;
+  paymentUrl?: string;
 }
 
 export function CheckoutClient({
@@ -158,6 +159,12 @@ export function CheckoutClient({
       }
 
       saveTrackedOrderToken(data.trackingToken);
+      if (typeof data.paymentUrl === 'string' && data.paymentUrl) {
+        // Real Fonepay sandbox/live redirect. Fonepay's callback settles the order.
+        clearCart();
+        window.location.assign(data.paymentUrl);
+        return;
+      }
       if (data.paymentMethod === 'COD') {
         clearCart();
         router.push(
@@ -251,11 +258,12 @@ export function CheckoutClient({
           </div>
 
           <p className="mt-4 text-sm leading-relaxed text-muted">
-            Your order has been reserved in status <strong className="text-ink">INITIATED</strong>. Complete sandbox payment verification to confirm{' '}
+            Your order has been reserved in status <strong className="text-ink">INITIATED</strong>. {gatewayOrder.paymentMethod}{' '}
+            has no live gateway wired up yet, so this sandbox step records a test outcome for{' '}
             <span className="font-semibold text-ink tabular-nums">
               {formatNPR(gatewayOrder.totalPaisa)}
             </span>{' '}
-            via {gatewayOrder.paymentMethod} (Ref: <code className="font-mono">{gatewayOrder.providerReference}</code>).
+            (Ref: <code className="font-mono">{gatewayOrder.providerReference}</code>). No money moves.
           </p>
 
           {error && <p className="mt-4 text-xs font-medium text-danger">{error}</p>}

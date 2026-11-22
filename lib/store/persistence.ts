@@ -1,17 +1,19 @@
 import fs from 'fs';
 import path from 'path';
 import type { StoreDatabase } from './repository';
+import { isDatabaseConfigured, readStoreSnapshot, writeStoreSnapshot } from './postgres';
 
 /**
- * Durable JSON store for the shop.
+ * Durable storage for the shop database.
  *
- * The CMS, catalogue, orders and settings all live in a single StoreDatabase
- * object. Without this module that object only exists in memory, so every
- * server restart (or serverless cold start) wiped everything an admin saved.
+ * Two backends:
+ *  - Postgres (used whenever DATABASE_URL is set, e.g. Vercel + Neon/Supabase).
+ *  - A local JSON file (used by local development with no DATABASE_URL).
  *
- * Writes are atomic (temp file + rename) and failures never throw: on hosts
- * with a read-only filesystem (e.g. Vercel) the app keeps working in memory
- * and logs a single warning.
+ * Reads are awaited once at startup and cached in memory, because the whole
+ * repository API is synchronous. Writes are queued and flushed before the
+ * request that caused them finishes, so a serverless instance can never be
+ * frozen between a mutation and its save.
  */
 
 export const DEFAULT_STORE_FILE = '.data/store.json';
@@ -20,6 +22,10 @@ export function resolveStoreFilePath(): string {
   const configured = process.env.STORE_DATA_FILE?.trim();
   if (configured) return path.resolve(configured);
   return path.join(process.cwd(), DEFAULT_STORE_FILE);
+}
+
+export function getPersistenceBackend(): 'database' | 'file' {
+  return isDatabaseConfigured() ? 'database' : 'file';
 }
 
 const REQUIRED_COLLECTIONS = [
@@ -42,7 +48,7 @@ const REQUIRED_COLLECTIONS = [
 
 let warnedAboutDisk = false;
 
-function isStoreDatabase(value: unknown): value is StoreDatabase {
+export function isStoreDatabase(value: unknown): value is StoreDatabase {
   if (!value || typeof value !== 'object') return false;
   const record = value as Record<string, unknown>;
   if (!record.settings || typeof record.settings !== 'object') return false;
@@ -71,7 +77,25 @@ export function loadStoreFromDisk(): StoreDatabase | null {
   }
 }
 
-/** Writes the whole store atomically. Returns false when the filesystem refuses. */
+/**
+ * Loads the authoritative snapshot. Throws when Postgres is configured but
+ * unreachable: falling back to seed data in that case would be dangerous,
+ * because the next save would overwrite real orders.
+ */
+export async function loadStoreSnapshot(): Promise<StoreDatabase | null> {
+  if (isDatabaseConfigured()) {
+    const snapshot = await readStoreSnapshot();
+    if (snapshot === null) return null;
+    if (!isStoreDatabase(snapshot)) {
+      console.warn('[store] The saved Postgres snapshot is not a store database. Keeping seed data.');
+      return null;
+    }
+    return snapshot;
+  }
+  return loadStoreFromDisk();
+}
+
+/** Writes the whole store atomically to disk. Returns false when the filesystem refuses. */
 export function saveStoreToDisk(database: StoreDatabase): boolean {
   const file = resolveStoreFilePath();
   const tempFile = `${file}.${process.pid}.tmp`;
@@ -85,7 +109,7 @@ export function saveStoreToDisk(database: StoreDatabase): boolean {
       warnedAboutDisk = true;
       console.warn(
         `[store] Content changes are not being saved: ${file} is not writable. ` +
-          'Set STORE_DATA_FILE to a writable path, or run on a host with a persistent disk.',
+          'Set DATABASE_URL to persist on a serverless host, or STORE_DATA_FILE to a writable path.',
         error instanceof Error ? error.message : error
       );
     }
@@ -96,4 +120,52 @@ export function saveStoreToDisk(database: StoreDatabase): boolean {
     }
     return false;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Postgres write queue
+// ---------------------------------------------------------------------------
+
+let writeQueue: Promise<void> = Promise.resolve();
+let lastWriteOk = true;
+let lastWriteError: string | null = null;
+let warnedAboutDatabase = false;
+
+/**
+ * Queues a snapshot write. The payload is serialised immediately so the write
+ * captures the state at the moment of the mutation, even though the network
+ * call happens later.
+ */
+export function queueStoreSave(database: StoreDatabase): void {
+  const payload = JSON.stringify(database);
+  const run = async () => {
+    try {
+      await writeStoreSnapshot(payload);
+      lastWriteOk = true;
+      lastWriteError = null;
+    } catch (error) {
+      lastWriteOk = false;
+      lastWriteError = error instanceof Error ? error.message : 'Unknown database error';
+      if (!warnedAboutDatabase) {
+        warnedAboutDatabase = true;
+        console.warn(
+          '[store] Could not save to Postgres. Recent changes are still in memory and will be ' +
+            'retried on the next save.',
+          lastWriteError
+        );
+      }
+    }
+  };
+  writeQueue = writeQueue.then(run);
+}
+
+/** Waits for every queued Postgres write. Call before returning a mutation response. */
+export async function flushStoreWrites(): Promise<boolean> {
+  if (!isDatabaseConfigured()) return true;
+  await writeQueue;
+  return lastWriteOk;
+}
+
+export function getLastStoreWriteError(): string | null {
+  return lastWriteError;
 }
