@@ -44,7 +44,7 @@ export function CatalogBrowser({
     }
 
     if (availability === 'in-stock') {
-      list = list.filter((p) => p.stockQuantity > 0);
+      list = list.filter((p) => p.productType === 'READY_STOCK' && p.stockQuantity > 0);
     } else if (availability === 'made-to-order') {
       list = list.filter((p) => p.productType === 'MADE_TO_ORDER');
     }
@@ -125,8 +125,9 @@ export function CatalogBrowser({
             className="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none focus:border-gold"
           >
             <option value="all">All Materials</option>
-            <option value="Panchadhatu">Panchadhatu</option>
-            <option value="Steel">Steel (316L)</option>
+            {Array.from(new Set(products.map((p) => p.material))).sort().map((name) => (
+              <option key={name} value={name}>{name === 'Steel' ? 'Steel (316L)' : name}</option>
+            ))}
           </select>
 
           <select
@@ -150,6 +151,7 @@ export function CatalogBrowser({
               <button
                 key={mode}
                 type="button"
+                aria-pressed={availability === mode}
                 onClick={() => setAvailability(mode)}
                 className={`border-b-2 pb-1 font-medium transition ${
                   availability === mode
@@ -161,7 +163,7 @@ export function CatalogBrowser({
               </button>
             ))}
           </div>
-          <span className="tabular-nums">
+          <span role="status" className="tabular-nums">
             Showing {filtered.length} {filtered.length === 1 ? 'piece' : 'pieces'}
           </span>
         </div>

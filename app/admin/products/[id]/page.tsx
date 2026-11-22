@@ -16,6 +16,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   return (
     <ProductForm
       mode="edit"
+      categories={getStore().categories.filter((c) => c.isActive || c.id === product.categoryId).map((c) => c.name)}
       initialValues={{
         id: product.id,
         name: product.name,
