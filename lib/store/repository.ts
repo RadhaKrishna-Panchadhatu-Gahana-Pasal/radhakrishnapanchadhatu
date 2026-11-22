@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { getPaymentProviderStates } from '@/lib/payments/availability';
+import { computeLoyaltyPoints, computeOrderTotals, evaluateCoupon, reservationExpiryIso } from './pricing';
 import {
   flushStoreWrites,
   getPersistenceBackend,
@@ -9,9 +10,12 @@ import {
   saveStoreToDisk,
 } from './persistence';
 import type {
+  AbandonedCart,
   AdminAuditLog,
   AdminRole,
+  AnalyticsDay,
   Announcement,
+  BackupRecord,
   Banner,
   Category,
   ContactEnquiry,
@@ -19,18 +23,22 @@ import type {
   Coupon,
   CustomOrderRequest,
   FulfilmentStatus,
+  GiftCard,
   HomepageSection,
   InventoryMovement,
   MediaAsset,
+  NotificationLogEntry,
   Order,
   OrderAddress,
   OrderItem,
+  PaymentEvent,
   PaymentMethod,
   PaymentStatus,
   Product,
   Review,
   ShippingZone,
   StoreSettings,
+  SystemEvent,
 } from './types';
 
 export interface StoreDatabase {
@@ -50,6 +58,32 @@ export interface StoreDatabase {
   inventoryMovements: InventoryMovement[];
   mediaAssets: MediaAsset[];
   auditLogs: AdminAuditLog[];
+  /** Added after launch: backfilled by normalizeStore for older snapshots. */
+  giftCards: GiftCard[];
+  paymentEvents: PaymentEvent[];
+  notificationLog: NotificationLogEntry[];
+  abandonedCarts: AbandonedCart[];
+  analyticsDaily: AnalyticsDay[];
+  systemEvents: SystemEvent[];
+  backups: BackupRecord[];
+}
+
+/** Fills collections introduced after the first production snapshot. */
+export function normalizeStore(store: StoreDatabase): StoreDatabase {
+  store.giftCards ??= [];
+  store.paymentEvents ??= [];
+  store.notificationLog ??= [];
+  store.abandonedCarts ??= [];
+  store.analyticsDaily ??= [];
+  store.systemEvents ??= [];
+  store.backups ??= [];
+  for (const order of store.orders) {
+    order.payment.refunds ??= [];
+    order.payment.refundedPaisa ??= 0;
+    order.stockReserved ??= false;
+    order.stockReleased ??= false;
+  }
+  return store;
 }
 
 function nowIso(): string {
@@ -690,6 +724,13 @@ function createInitialDatabase(): StoreDatabase {
         createdAt: created,
       },
     ],
+    giftCards: [],
+    paymentEvents: [],
+    notificationLog: [],
+    abandonedCarts: [],
+    analyticsDaily: [],
+    systemEvents: [],
+    backups: [],
   };
 }
 
@@ -703,7 +744,10 @@ export function getStore(): StoreDatabase {
   if (!globalForStore.__rkpStore) {
     globalForStore.__rkpStore = createInitialDatabase();
   }
-  return globalForStore.__rkpStore;
+  // A long-lived instance (or a hot-reloaded dev server) can hold a snapshot
+  // that predates a collection added in a later deploy. Fill the gaps here so
+  // every reader can assume the shape without null checks.
+  return normalizeStore(globalForStore.__rkpStore);
 }
 
 type HydrationState = 'pending' | 'ready' | 'failed';
@@ -736,7 +780,7 @@ export async function hydrateStore(): Promise<void> {
     try {
       const snapshot = await loadStoreSnapshot();
       if (snapshot) {
-        globalForStore.__rkpStore = snapshot;
+        globalForStore.__rkpStore = normalizeStore(snapshot);
       } else {
         const seeded = getStore();
         if (isDatabaseConfigured()) {
@@ -911,6 +955,7 @@ export function createServerOrder(input: {
   items: { productId: string; variantId?: string; quantity: number }[];
   paymentMethod: PaymentMethod;
   couponCode?: string;
+  giftCardCode?: string;
 }): { ok: true; order: Order } | { ok: false; error: string } {
   const store = getStore();
 
@@ -972,32 +1017,45 @@ export function createServerOrder(input: {
   // Coupon validation
   let discountPaisa = 0;
   let appliedCouponCode: string | undefined;
+  let appliedCoupon: Coupon | undefined;
   if (input.couponCode && input.couponCode.trim()) {
     const normalized = input.couponCode.trim().toUpperCase();
     const coupon = store.coupons.find((c) => c.code.toUpperCase() === normalized && c.active);
-    if (!coupon) {
-      return { ok: false, error: `Coupon code "${normalized}" is invalid or inactive.` };
+    const evaluation = evaluateCoupon(coupon, subtotalPaisa, normalized);
+    if (!evaluation.ok) {
+      return { ok: false, error: evaluation.message };
     }
-    if (subtotalPaisa < coupon.minOrderPaisa) {
-      return { ok: false, error: `Coupon ${normalized} requires a higher order minimum.` };
-    }
-    discountPaisa =
-      coupon.discountType === 'PERCENT'
-        ? Math.round((subtotalPaisa * coupon.value) / 100)
-        : Math.min(coupon.value, subtotalPaisa);
-    coupon.usageCount += 1;
-    appliedCouponCode = coupon.code;
+    discountPaisa = evaluation.discountPaisa;
+    appliedCoupon = coupon;
+    appliedCouponCode = coupon?.code;
   }
 
+  // Gift card validation (partial redemption is allowed; the balance stays on the card)
+  let giftCard: GiftCard | undefined;
+  if (input.giftCardCode && input.giftCardCode.trim()) {
+    const normalizedGift = input.giftCardCode.trim().toUpperCase();
+    giftCard = store.giftCards.find((g) => g.code.toUpperCase() === normalizedGift);
+    if (!giftCard || !giftCard.active || giftCard.balancePaisa <= 0) {
+      return { ok: false, error: `Gift card "${normalizedGift}" is invalid, inactive, or already used up.` };
+    }
+  }
+
+  const subtotalAfterDiscount = Math.max(0, subtotalPaisa - discountPaisa);
   const { feePaisa: deliveryFeePaisa, zone } = calculateDeliveryFee(
     input.address.province,
-    Math.max(0, subtotalPaisa - discountPaisa)
+    subtotalAfterDiscount
   );
   if (input.paymentMethod === 'COD' && zone && !zone.codAvailable) {
     return { ok: false, error: `Cash on Delivery is not available for ${zone.province}. Please choose an online payment gateway.` };
   }
 
-  const totalPaisa = Math.max(0, subtotalPaisa - discountPaisa) + deliveryFeePaisa;
+  const totals = computeOrderTotals({
+    subtotalPaisa,
+    discountPaisa,
+    deliveryFeePaisa,
+    giftCardBalancePaisa: giftCard?.balancePaisa ?? 0,
+  });
+  const totalPaisa = totals.totalPaisa;
 
   // Deduct stock & record inventory movements
   const timestamp = nowIso();
@@ -1024,10 +1082,24 @@ export function createServerOrder(input: {
     }
   }
 
+  // Debit the coupon and gift card only now that the order is certainly created.
+  if (appliedCoupon) appliedCoupon.usageCount += 1;
+  if (giftCard && totals.giftCardPaisa > 0) {
+    giftCard.balancePaisa = Math.max(0, giftCard.balancePaisa - totals.giftCardPaisa);
+    if (giftCard.balancePaisa === 0) giftCard.active = false;
+    giftCard.updatedAt = nowIso();
+  }
+
   const orderId = uid('ord');
-  const orderNumber = `RKP-${new Date().getFullYear()}-${String(1002 + store.orders.length)}`;
+  const sequence = store.orders.reduce((max, existing) => {
+    const match = existing.orderNumber.match(/(\d+)$/);
+    return match ? Math.max(max, Number(match[1])) : max;
+  }, 1000);
+  const orderNumber = `RKP-${new Date().getFullYear()}-${String(sequence + 1)}`;
   const trackingToken = `trk_${crypto.randomBytes(12).toString('hex')}`;
-  const isOnline = input.paymentMethod !== 'COD';
+  // A fully gift-card-paid order needs no gateway step.
+  const isOnline = input.paymentMethod !== 'COD' && totalPaisa > 0;
+  const settledByGiftCard = input.paymentMethod !== 'COD' && totalPaisa === 0;
 
   const order: Order = {
     id: orderId,
@@ -1043,9 +1115,15 @@ export function createServerOrder(input: {
     couponCode: appliedCouponCode,
     deliveryFeePaisa,
     totalPaisa,
+    giftCardCode: giftCard ? giftCard.code : undefined,
+    giftCardPaisa: totals.giftCardPaisa || undefined,
     paymentMethod: input.paymentMethod,
-    paymentStatus: isOnline ? 'INITIATED' : 'PENDING',
+    paymentStatus: isOnline ? 'INITIATED' : settledByGiftCard ? 'PAID' : 'PENDING',
     fulfilmentStatus: 'ORDER_PLACED',
+    stockReserved: true,
+    stockReleased: false,
+    reservationExpiresAt: isOnline ? reservationExpiryIso(new Date(timestamp)) : undefined,
+    loyaltyPointsEarned: computeLoyaltyPoints(totalPaisa),
     timeline: [
       {
         id: uid('tl'),
@@ -1053,6 +1131,8 @@ export function createServerOrder(input: {
         toStatus: 'ORDER_PLACED',
         publicNote: isOnline
           ? `Order placed. Awaiting ${input.paymentMethod} verification.`
+          : settledByGiftCard
+          ? 'Order fully paid with a gift card.'
           : 'Order placed with Cash on Delivery.',
         actor: 'System',
         createdAt: timestamp,
@@ -1064,9 +1144,12 @@ export function createServerOrder(input: {
       provider: input.paymentMethod,
       amountPaisa: totalPaisa,
       currency: 'NPR',
-      status: isOnline ? 'INITIATED' : 'PENDING',
+      status: isOnline ? 'INITIATED' : settledByGiftCard ? 'PAID' : 'PENDING',
       providerReference: `${input.paymentMethod}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
       idempotencyKey: `idem-${orderId}`,
+      verifiedAt: settledByGiftCard ? timestamp : undefined,
+      refundedPaisa: 0,
+      refunds: [],
       createdAt: timestamp,
     },
     createdAt: timestamp,
@@ -1099,6 +1182,8 @@ export function verifyServerPayment(params: {
   outcome: 'PAID' | 'FAILED' | 'CANCELLED';
   /** Bank/gateway transaction id returned by the payment network, stored for reconciliation. */
   gatewayReference?: string;
+  source?: 'CALLBACK' | 'ADMIN' | 'SANDBOX' | 'CRON';
+  note?: string;
 }): { ok: true; order: Order; idempotentReplay: boolean } | { ok: false; error: string } {
   const store = getStore();
   const order = store.orders.find(
@@ -1108,12 +1193,32 @@ export function verifyServerPayment(params: {
     return { ok: false, error: 'Order not found.' };
   }
 
-  // Idempotent guard: already finalized with PAID
+  // Idempotent guard: a PAID order can never be downgraded by a replay, and a
+  // repeated terminal failure must not append duplicate timeline entries.
   if (order.paymentStatus === 'PAID') {
+    return { ok: true, order, idempotentReplay: true };
+  }
+  if (
+    (params.outcome === 'FAILED' || params.outcome === 'CANCELLED') &&
+    order.paymentStatus === params.outcome
+  ) {
     return { ok: true, order, idempotentReplay: true };
   }
 
   const timestamp = nowIso();
+  store.paymentEvents.unshift({
+    id: uid('pev'),
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    providerReference: params.providerReference,
+    outcome: params.outcome,
+    source: params.source ?? 'CALLBACK',
+    amountPaisa: order.totalPaisa,
+    gatewayReference: params.gatewayReference,
+    note: params.note,
+    createdAt: timestamp,
+  });
+  if (store.paymentEvents.length > 500) store.paymentEvents.length = 500;
   order.payment.status = params.outcome;
   order.paymentStatus = params.outcome;
   order.payment.providerReference = params.providerReference || order.payment.providerReference;

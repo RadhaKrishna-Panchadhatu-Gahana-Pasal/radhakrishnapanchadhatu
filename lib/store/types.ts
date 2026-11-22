@@ -156,6 +156,104 @@ export interface PaymentRecord {
   gatewayReference?: string;
   idempotencyKey: string;
   verifiedAt?: string;
+  /** Total already returned to the customer, in paisa. */
+  refundedPaisa?: number;
+  refunds?: PaymentRefund[];
+  createdAt: string;
+}
+
+export interface PaymentRefund {
+  id: string;
+  amountPaisa: number;
+  reason: string;
+  actor: string;
+  /** Gateway refund reference when the refund was processed by Fonepay/bank. */
+  gatewayReference?: string;
+  createdAt: string;
+}
+
+/** Append-only ledger of gateway callbacks, used to make settlement idempotent. */
+export interface PaymentEvent {
+  id: string;
+  orderId: string;
+  orderNumber: string;
+  providerReference: string;
+  outcome: 'PAID' | 'FAILED' | 'CANCELLED' | 'REFUNDED' | 'RECONCILED';
+  source: 'CALLBACK' | 'ADMIN' | 'SANDBOX' | 'CRON';
+  amountPaisa: number;
+  gatewayReference?: string;
+  note?: string;
+  createdAt: string;
+}
+
+export interface GiftCard {
+  id: string;
+  code: string;
+  initialPaisa: number;
+  balancePaisa: number;
+  active: boolean;
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type NotificationChannel = 'EMAIL' | 'WHATSAPP';
+
+export interface NotificationLogEntry {
+  id: string;
+  channel: NotificationChannel;
+  /** Stable de-duplication key, e.g. order:RKP-2026-1002:placed. */
+  key: string;
+  to: string;
+  subject: string;
+  status: 'SENT' | 'SKIPPED' | 'FAILED';
+  detail?: string;
+  createdAt: string;
+}
+
+export interface AbandonedCartItem {
+  productId: string;
+  name: string;
+  quantity: number;
+  unitPricePaisa: number;
+}
+
+export interface AbandonedCart {
+  id: string;
+  email: string;
+  customerName?: string;
+  phone?: string;
+  items: AbandonedCartItem[];
+  subtotalPaisa: number;
+  recoveryToken: string;
+  remindedAt?: string;
+  recoveredOrderNumber?: string;
+  createdAt: string;
+}
+
+export interface AnalyticsDay {
+  date: string;
+  events: Record<string, number>;
+}
+
+export interface SystemEvent {
+  id: string;
+  level: 'ERROR' | 'WARN' | 'INFO';
+  scope: string;
+  message: string;
+  detail?: string;
+  path?: string;
+  createdAt: string;
+}
+
+export interface BackupRecord {
+  id: string;
+  reason: string;
+  orders: number;
+  products: number;
+  sizeBytes: number;
+  /** Postgres row revision the backup was taken from, when known. */
+  revision?: number | null;
   createdAt: string;
 }
 
@@ -178,6 +276,13 @@ export interface Order {
   fulfilmentStatus: FulfilmentStatus;
   courierName?: string;
   trackingReference?: string;
+  /** Stock is held for the order; released when an unpaid order expires or is cancelled. */
+  stockReserved?: boolean;
+  stockReleased?: boolean;
+  reservationExpiresAt?: string;
+  giftCardCode?: string;
+  giftCardPaisa?: number;
+  loyaltyPointsEarned?: number;
   timeline: OrderStatusHistoryEntry[];
   payment: PaymentRecord;
   createdAt: string;

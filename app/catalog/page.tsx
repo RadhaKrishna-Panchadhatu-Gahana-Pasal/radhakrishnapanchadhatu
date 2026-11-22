@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { PageViewTracker } from '@/components/analytics/page-view-tracker';
 import { CatalogBrowser } from '@/components/store/catalog-browser';
 import { toAbsoluteUrl } from '@/lib/seo/metadata';
 import { nprFromPaisa } from '@/lib/store/money';
@@ -84,6 +85,7 @@ export default function CatalogPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <PageViewTracker event="catalog_view" />
       <CatalogBrowser products={products} categories={categories} />
     </>
   );

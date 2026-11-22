@@ -156,11 +156,20 @@ export function buildFonepayPaymentUrl(
  *
  * Returns true when there is nothing to check (contract without a return DV).
  */
+/** Fonepay returns either upper-case or lower-case keys depending on the bank. */
+function pickParam(params: URLSearchParams, ...keys: string[]): string {
+  for (const key of keys) {
+    const value = params.get(key);
+    if (value !== null && value !== undefined) return value;
+  }
+  return '';
+}
+
 export function verifyFonepayReturnSignature(config: FonepayConfig, params: URLSearchParams): boolean {
-  const received = params.get('DV')?.trim();
+  const received = pickParam(params, 'DV', 'dv').trim();
   if (!received) return true;
-  const fields = ['PRN', 'PID', 'PS', 'RC', 'UID', 'BC', 'INI', 'P_AMT', 'R_AMT'].map(
-    (key) => params.get(key) ?? ''
+  const fields = ['PRN', 'PID', 'PS', 'RC', 'UID', 'BC', 'INI', 'P_AMT', 'R_AMT'].map((key) =>
+    pickParam(params, key, key.toLowerCase())
   );
   return fonepaySignaturesMatch(signFonepayFields(config.secret, fields), received);
 }
@@ -246,10 +255,10 @@ export function readFonepayReturnParams(params: URLSearchParams): {
   dvPresent: boolean;
 } {
   return {
-    reference: (params.get('PRN') || params.get('prn') || '').trim(),
-    bankCode: (params.get('BID') || params.get('BC') || params.get('bid') || '').trim(),
-    transactionId: (params.get('UID') || params.get('uid') || '').trim(),
-    status: (params.get('PS') || params.get('RC') || '').trim(),
-    dvPresent: Boolean(params.get('DV') || params.get('dv')),
+    reference: pickParam(params, 'PRN', 'prn').trim(),
+    bankCode: pickParam(params, 'BID', 'bid', 'BC', 'bc').trim(),
+    transactionId: pickParam(params, 'UID', 'uid').trim(),
+    status: pickParam(params, 'PS', 'ps', 'RC', 'rc').trim(),
+    dvPresent: Boolean(pickParam(params, 'DV', 'dv')),
   };
 }

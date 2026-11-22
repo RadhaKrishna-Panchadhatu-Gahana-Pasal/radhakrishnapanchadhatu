@@ -6,19 +6,22 @@ import Link from 'next/link';
 import { Heart, Menu, Search, ShoppingBag, User, X } from 'lucide-react';
 import { HeaderSearch } from '@/components/layout/header-search';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
+import { LocaleToggle } from '@/components/layout/locale-toggle';
+import { useLocale } from '@/components/providers/locale-provider';
 import { useStore } from '@/components/providers/store-provider';
 
 const NAV_LINKS = [
-  { href: '/catalog', label: 'Catalog' },
-  { href: '/new-arrivals', label: 'New Arrivals' },
-  { href: '/custom-order', label: 'Custom Order' },
-  { href: '/track-order', label: 'Track Order' },
-  { href: '/about', label: 'About' },
-  { href: '/contact', label: 'Contact' },
-];
+  { href: '/catalog', key: 'nav.catalog' },
+  { href: '/new-arrivals', key: 'nav.newArrivals' },
+  { href: '/custom-order', key: 'nav.customOrder' },
+  { href: '/track-order', key: 'nav.trackOrder' },
+  { href: '/about', key: 'nav.about' },
+  { href: '/contact', key: 'nav.contact' },
+] as const;
 
 export function Header({ storeName = 'Radhakrishna Panchadhatu' }: { storeName?: string }) {
   const { cartCount, wishlist, setCartDrawerOpen, user } = useStore();
+  const { t } = useLocale();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
@@ -33,7 +36,7 @@ export function Header({ storeName = 'Radhakrishna Panchadhatu' }: { storeName?:
               setMobileOpen((prev) => !prev);
               setMobileSearchOpen(false);
             }}
-            aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-label={mobileOpen ? t('nav.menuClose') : t('nav.menuOpen')}
             className="rounded-lg p-1.5 text-ink transition hover:bg-sand lg:hidden"
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -72,7 +75,7 @@ export function Header({ storeName = 'Radhakrishna Panchadhatu' }: { storeName?:
               href={item.href}
               className="whitespace-nowrap shrink-0 transition hover:text-gold-deep"
             >
-              {item.label}
+              {t(item.key)}
             </Link>
           ))}
         </nav>
@@ -89,7 +92,7 @@ export function Header({ storeName = 'Radhakrishna Panchadhatu' }: { storeName?:
               setMobileSearchOpen((prev) => !prev);
               setMobileOpen(false);
             }}
-            aria-label={mobileSearchOpen ? 'Close search bar' : 'Search jewellery'}
+            aria-label={mobileSearchOpen ? 'Close search bar' : t('nav.search')}
             aria-expanded={mobileSearchOpen}
             className="rounded-full p-2 text-ink transition hover:bg-sand hover:text-gold-deep md:hidden"
           >
@@ -102,7 +105,7 @@ export function Header({ storeName = 'Radhakrishna Panchadhatu' }: { storeName?:
 
           <Link
             href="/wishlist"
-            aria-label={`Wishlist (${wishlist.length})`}
+            aria-label={`${t('nav.wishlist')} (${wishlist.length})`}
             className="relative shrink-0 rounded-full p-2 text-ink transition hover:bg-sand hover:text-gold-deep"
           >
             <Heart className="h-[18px] w-[18px]" />
@@ -115,12 +118,13 @@ export function Header({ storeName = 'Radhakrishna Panchadhatu' }: { storeName?:
 
           <Link
             href="/account"
-            aria-label={user ? 'Customer account' : 'Sign in'}
+            aria-label={user ? t('nav.account') : 'Sign in'}
             className="hidden shrink-0 rounded-full p-2 text-ink transition hover:bg-sand hover:text-gold-deep sm:inline-flex"
           >
             <User className="h-[18px] w-[18px]" />
           </Link>
 
+          <LocaleToggle />
           <ThemeToggle />
 
           <button
@@ -130,7 +134,7 @@ export function Header({ storeName = 'Radhakrishna Panchadhatu' }: { storeName?:
             className="relative inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-sand/70 px-3 py-1.5 text-sm font-medium text-ink transition hover:border-gold hover:text-gold-deep whitespace-nowrap"
           >
             <ShoppingBag className="h-4 w-4 text-gold-deep" />
-            <span className="hidden sm:inline">Cart</span>
+            <span className="hidden sm:inline">{t('nav.cart')}</span>
             <span className="tabular-nums font-semibold text-gold-deep">{cartCount}</span>
           </button>
 
@@ -138,7 +142,7 @@ export function Header({ storeName = 'Radhakrishna Panchadhatu' }: { storeName?:
             href="/admin"
             className="hidden shrink-0 whitespace-nowrap rounded-full bg-ink px-3 py-1.5 text-xs font-medium tracking-wide text-surface transition hover:bg-gold-deep lg:inline-flex"
           >
-            Admin
+            {t('nav.admin')}
           </Link>
         </div>
       </div>
@@ -165,7 +169,7 @@ export function Header({ storeName = 'Radhakrishna Panchadhatu' }: { storeName?:
                 onClick={() => setMobileOpen(false)}
                 className="rounded-xl px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-sand hover:text-gold-deep"
               >
-                {item.label}
+                {t(item.key)}
               </Link>
             ))}
             <div className="mt-2 flex items-center gap-3 border-t border-line pt-3">
@@ -174,14 +178,14 @@ export function Header({ storeName = 'Radhakrishna Panchadhatu' }: { storeName?:
                 onClick={() => setMobileOpen(false)}
                 className="flex-1 rounded-full border border-line py-2 text-center text-sm font-medium text-ink"
               >
-                Account
+                {t('nav.account')}
               </Link>
               <Link
                 href="/admin"
                 onClick={() => setMobileOpen(false)}
                 className="flex-1 rounded-full bg-ink py-2 text-center text-sm font-medium text-surface"
               >
-                Admin CMS
+                {t('nav.adminCms')}
               </Link>
             </div>
           </nav>

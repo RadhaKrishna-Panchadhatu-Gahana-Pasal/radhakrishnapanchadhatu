@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Archive, Edit3, Plus, Search } from 'lucide-react';
+import { Archive, Download, Edit3, Plus, Search, Upload } from 'lucide-react';
 import { formatNPR } from '@/lib/store/money';
 import type { Product } from '@/lib/store/types';
 
@@ -10,6 +10,8 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const loadProducts = async () => {
     setLoading(true);
@@ -33,6 +35,30 @@ export default function AdminProductsPage() {
     loadProducts();
   };
 
+  const handleImport = async (file: File) => {
+    setImporting(true);
+    setImportMessage(null);
+    try {
+      const res = await fetch('/api/admin/products/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/csv' },
+        body: await file.text(),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setImportMessage(data.error || 'Import failed.');
+      } else {
+        setImportMessage(
+          `Imported ${data.created} new and ${data.updated} updated products` +
+            (data.skipped?.length ? ` · skipped: ${data.skipped.join(', ')}` : '.')
+        );
+        loadProducts();
+      }
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const filtered = products.filter(
     (p) =>
       p.name.toLowerCase().includes(query.toLowerCase()) ||
@@ -49,13 +75,45 @@ export default function AdminProductsPage() {
           </p>
           <h1 className="section-title mt-2">Products ({products.length})</h1>
         </div>
-        <Link
-          href="/admin/products/new"
-          className="inline-flex items-center gap-2 rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-white hover:bg-gold-deep"
-        >
-          <Plus className="h-4 w-4" /> New Product
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href="/api/admin/products/export"
+            className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-4 py-2.5 text-sm font-medium text-ink hover:border-gold"
+          >
+            <Download aria-hidden="true" className="h-4 w-4" /> Export CSV
+          </a>
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-line bg-surface px-4 py-2.5 text-sm font-medium text-ink hover:border-gold">
+            <Upload aria-hidden="true" className="h-4 w-4" />
+            {importing ? 'Importing…' : 'Import CSV'}
+            <input
+              type="file"
+              accept="text/csv,.csv"
+              className="sr-only"
+              disabled={importing}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void handleImport(file);
+                event.target.value = '';
+              }}
+            />
+          </label>
+          <Link
+            href="/admin/products/new"
+            className="inline-flex items-center gap-2 rounded-full bg-gold px-5 py-2.5 text-sm font-medium text-white hover:bg-gold-deep"
+          >
+            <Plus className="h-4 w-4" /> New Product
+          </Link>
+        </div>
       </div>
+
+      {importMessage && (
+        <p className="mb-4 rounded-xl border border-line bg-sand/50 p-3 text-xs text-ink">{importMessage}</p>
+      )}
+
+      <p className="mb-5 text-xs text-muted">
+        CSV columns: sku, name, category_slug, material, price_npr, compare_at_npr, stock, status, short_description.
+        Matched by SKU; new rows import as DRAFT so nothing goes live by accident.
+      </p>
 
       <div className="mb-5 relative max-w-md">
         <Search className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-muted" />

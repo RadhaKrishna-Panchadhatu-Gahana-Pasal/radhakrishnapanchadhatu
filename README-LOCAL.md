@@ -49,3 +49,26 @@ bun run build      # production build (prisma generate + next build), same as Ve
 bun run typecheck  # tsc --noEmit
 bun run lint       # next lint
 ```
+
+## What's new (operational features)
+
+Run the checks:
+
+```bash
+bun test tests        # pricing, Fonepay signing, CSV, rate limiting
+bun run typecheck
+bun run build
+```
+
+New optional environment variables (see `.env.example`):
+
+| Variable | Purpose |
+| --- | --- |
+| `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO` | Order/status/abandoned-bag/gift-card email. Silent no-op when unset. |
+| `CRON_SECRET` | Protects `/api/cron/maintenance` (Vercel Cron already configured in `vercel.json`). |
+| `ERROR_WEBHOOK_URL` | Posts captured errors to Slack/Discord; errors are also stored for `/admin/system`. |
+| `ADMIN_PASSCODE` | **Required in production** — sign-in refuses to work without it. |
+
+Admin additions: `/admin/orders` (refunds, cancel, reconcile, packing slip),
+`/admin/gift-cards`, `/admin/system` (health, backups, funnel, notification log),
+and CSV export/import on `/admin/products`.

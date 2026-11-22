@@ -21,6 +21,13 @@ const CREATE_TABLE_SQL = `CREATE TABLE IF NOT EXISTS store_state (
   updated_at timestamptz NOT NULL DEFAULT now()
 )`;
 
+const CREATE_BACKUP_TABLE_SQL = `CREATE TABLE IF NOT EXISTS store_backups (
+  id text PRIMARY KEY,
+  data jsonb NOT NULL,
+  reason text NOT NULL DEFAULT 'manual',
+  created_at timestamptz NOT NULL DEFAULT now()
+)`;
+
 const globalForPostgres = globalThis as unknown as {
   __rkpPrisma?: PrismaClient;
   __rkpTableReady?: boolean;
@@ -28,6 +35,33 @@ const globalForPostgres = globalThis as unknown as {
 
 export function isDatabaseConfigured(): boolean {
   return Boolean(process.env.DATABASE_URL?.trim());
+}
+
+/**
+ * Writes an independent copy of the snapshot. Backups live in their own table
+ * so they are never overwritten by the live row, and the newest 14 are kept.
+ * Returns the live snapshot revision at backup time.
+ */
+export async function writeBackupSnapshot(id: string, payloadJson: string): Promise<number | null> {
+  const client = await getClient();
+  await ensureTable(client);
+  await client.$executeRawUnsafe(CREATE_BACKUP_TABLE_SQL);
+  await client.$executeRawUnsafe(
+    `INSERT INTO store_backups (id, data, reason, created_at) VALUES ($1, $2::jsonb, 'scheduled', now())
+     ON CONFLICT (id) DO NOTHING`,
+    id,
+    payloadJson
+  );
+  await client.$executeRawUnsafe(
+    `DELETE FROM store_backups WHERE id NOT IN (
+       SELECT id FROM store_backups ORDER BY created_at DESC LIMIT 14
+     )`
+  );
+  const rows = await client.$queryRawUnsafe<Array<{ revision: bigint | number }>>(
+    'SELECT revision FROM store_state WHERE id = $1 LIMIT 1',
+    SNAPSHOT_ID
+  );
+  return rows[0] ? Number(rows[0].revision) : null;
 }
 
 async function getClient(): Promise<PrismaClient> {

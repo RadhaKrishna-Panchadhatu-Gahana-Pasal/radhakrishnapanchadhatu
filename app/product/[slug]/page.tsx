@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { PageViewTracker } from '@/components/analytics/page-view-tracker';
 import { ProductDetailClient } from '@/components/store/product-detail-client';
 import { formatMetaDescription, toAbsoluteUrl } from '@/lib/seo/metadata';
 import { formatNPR, nprFromPaisa } from '@/lib/store/money';
@@ -197,6 +198,7 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <PageViewTracker event="product_view" />
       <ProductDetailClient
         product={product}
         initialReviews={approvedReviews}

@@ -33,6 +33,7 @@ export function ProductDetailClient({
 }) {
   const { addToCart, wishlist, toggleWishlist } = useStore();
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
+  const [zoomed, setZoomed] = useState(false);
   const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(
     product.variants[0]?.id
   );
@@ -153,7 +154,19 @@ export function ProductDetailClient({
       {/* Contiguous Purchase Module */}
       <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
         <div>
-          <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[2rem] border border-line bg-elevated">
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label={zoomed ? 'Zoom out of product photo' : 'Zoom into product photo'}
+            onClick={() => setZoomed((value) => !value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                setZoomed((value) => !value);
+              }
+            }}
+            className="group relative aspect-[3/4] w-full cursor-zoom-in overflow-hidden rounded-[2rem] border border-line bg-elevated"
+          >
             <Image
               src={mainImage.url}
               alt={mainImage.alt || product.name}
@@ -161,8 +174,13 @@ export function ProductDetailClient({
               priority
               sizes="(max-width: 1024px) 100vw, 48vw"
               referrerPolicy="no-referrer"
-              className="object-cover"
+              className={`object-cover transition-transform duration-300 ease-out ${
+                zoomed ? 'scale-[1.8]' : 'group-hover:scale-105'
+              }`}
             />
+            <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-medium text-white opacity-0 transition group-hover:opacity-100">
+              {zoomed ? 'Tap to zoom out' : 'Tap to zoom'}
+            </span>
           </div>
 
           {images.length > 1 && (
@@ -244,6 +262,29 @@ export function ProductDetailClient({
               </div>
             </div>
           )}
+
+          <details className="mt-5 rounded-xl border border-line bg-sand/40 px-4 py-3 text-xs">
+            <summary className="cursor-pointer font-semibold text-ink">
+              Ring &amp; bangle size guide
+            </summary>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <div>
+                <p className="font-semibold text-ink">Rings (US → inner diameter)</p>
+                <p className="mt-1 leading-relaxed text-muted">
+                  US 6 = 16.5 mm · US 7 = 17.3 mm · US 8 = 18.1 mm · US 9 = 18.9 mm
+                </p>
+              </div>
+              <div>
+                <p className="font-semibold text-ink">Bangles (Nepali size)</p>
+                <p className="mt-1 leading-relaxed text-muted">
+                  2.4 ≈ 60 mm · 2.6 ≈ 65 mm · 2.8 ≈ 70 mm inner diameter
+                </p>
+              </div>
+            </div>
+            <p className="mt-2 text-[11px] text-muted">
+              Measure an existing ring or bangle at home, or message us on WhatsApp — we will confirm the fit before dispatch.
+            </p>
+          </details>
 
           {/* Quantity + Primary Cart & Wishlist Actions */}
           <div className="mt-7 flex flex-wrap items-center gap-3">

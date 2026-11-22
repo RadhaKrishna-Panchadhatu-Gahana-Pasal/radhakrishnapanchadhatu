@@ -16,6 +16,12 @@ export default function AdminOverviewPage() {
   );
   const pendingReviews = store.reviews.filter((r) => r.status === 'PENDING');
   const openCustomLeads = store.customOrderRequests.filter((r) => r.status === 'NEW');
+  const outstandingGiftCards = (store.giftCards ?? [])
+    .filter((card) => card.active)
+    .reduce((sum, card) => sum + card.balancePaisa, 0);
+  const loyaltyPoints = store.orders
+    .filter((order) => order.fulfilmentStatus === 'DELIVERED')
+    .reduce((sum, order) => sum + (order.loyaltyPointsEarned ?? 0), 0);
 
   return (
     <div className="space-y-8">
@@ -78,6 +84,28 @@ export default function AdminOverviewPage() {
           <p className="mt-1 text-xs text-muted tabular-nums">
             {pendingReviews.length} reviews &middot; {openCustomLeads.length} custom requests
           </p>
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Link
+          href="/admin/gift-cards"
+          className="card flex items-center justify-between p-5 transition hover:border-gold"
+        >
+          <div>
+            <p className="text-xs uppercase tracking-[0.16em] text-muted">Gift card balance outstanding</p>
+            <p className="mt-2 font-serif text-2xl font-semibold text-ink tabular-nums">
+              {formatNPR(outstandingGiftCards)}
+            </p>
+          </div>
+          <span className="text-xs font-medium text-gold-deep">Manage →</span>
+        </Link>
+        <div className="card p-5">
+          <p className="text-xs uppercase tracking-[0.16em] text-muted">Loyalty points earned (delivered)</p>
+          <p className="mt-2 font-serif text-2xl font-semibold text-gold-deep tabular-nums">
+            {loyaltyPoints.toLocaleString()}
+          </p>
+          <p className="mt-1 text-xs text-muted">1 point per NPR 100 paid · redeem as a gift card</p>
         </div>
       </div>
 

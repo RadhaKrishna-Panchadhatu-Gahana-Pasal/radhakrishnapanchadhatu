@@ -18,6 +18,7 @@ import {
   toggleWishlistInFirestore,
   type FirebaseClientConfig,
 } from '@/lib/firebase/client';
+import { trackEvent } from '@/lib/analytics/client';
 
 export interface CartItem {
   productId: string;
@@ -284,6 +285,7 @@ export function StoreProvider({
       }
       return [...prev, item];
     });
+    trackEvent('add_to_cart', item.quantity);
     setCartDrawerOpen(true);
   }, []);
 

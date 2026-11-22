@@ -3,12 +3,14 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { MapPin, Phone } from 'lucide-react';
+import { useLocale } from '@/components/providers/locale-provider';
 import { useStore } from '@/components/providers/store-provider';
 import { PWAInstallButton } from '@/components/pwa/pwa-install-button';
 import type { StoreSettings } from '@/lib/store/types';
 
 export function Footer({ settings }: { settings: StoreSettings }) {
   const { setCookieModalOpen } = useStore();
+  const { t } = useLocale();
 
   return (
     <footer className="relative overflow-hidden border-t border-line bg-surface">
@@ -61,46 +63,46 @@ export function Footer({ settings }: { settings: StoreSettings }) {
 
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-deep">
-            Collections
+            {t('footer.collections')}
           </div>
           <ul className="mt-4 space-y-2.5 text-sm text-muted">
-            <li><Link href="/catalog" className="hover:text-gold-deep">Full Catalog</Link></li>
+            <li><Link href="/catalog" className="hover:text-gold-deep">{t('footer.fullCatalog')}</Link></li>
             <li><Link href="/categories/panchadhatu" className="hover:text-gold-deep">Panchadhatu</Link></li>
-            <li><Link href="/categories/steel-jewellery" className="hover:text-gold-deep">Steel Jewellery</Link></li>
-            <li><Link href="/new-arrivals" className="hover:text-gold-deep">New Arrivals</Link></li>
-            <li><Link href="/custom-order" className="hover:text-gold-deep">Custom Order</Link></li>
+            <li><Link href="/categories/steel-jewellery" className="hover:text-gold-deep">{t('footer.steel')}</Link></li>
+            <li><Link href="/new-arrivals" className="hover:text-gold-deep">{t('nav.newArrivals')}</Link></li>
+            <li><Link href="/custom-order" className="hover:text-gold-deep">{t('footer.customOrder')}</Link></li>
           </ul>
         </div>
 
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-deep">
-            Customer Care
+            {t('footer.customerCare')}
           </div>
           <ul className="mt-4 space-y-2.5 text-sm text-muted">
-            <li><Link href="/track-order" className="hover:text-gold-deep">Track Order</Link></li>
-            <li><Link href="/faq" className="hover:text-gold-deep">FAQ &amp; Care</Link></li>
-            <li><Link href="/shipping-policy" className="hover:text-gold-deep">Shipping &amp; Delivery</Link></li>
-            <li><Link href="/return-refund-policy" className="hover:text-gold-deep">Returns &amp; Exchanges</Link></li>
-            <li><Link href="/install" className="hover:text-gold-deep">Install App</Link></li>
+            <li><Link href="/track-order" className="hover:text-gold-deep">{t('footer.trackOrder')}</Link></li>
+            <li><Link href="/faq" className="hover:text-gold-deep">{t('footer.faq')}</Link></li>
+            <li><Link href="/shipping-policy" className="hover:text-gold-deep">{t('footer.shipping')}</Link></li>
+            <li><Link href="/return-refund-policy" className="hover:text-gold-deep">{t('footer.returns')}</Link></li>
+            <li><Link href="/install" className="hover:text-gold-deep">{t('footer.install')}</Link></li>
           </ul>
         </div>
 
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-deep">
-            Store &amp; Policies
+            {t('footer.storePolicies')}
           </div>
           <ul className="mt-4 space-y-2.5 text-sm text-muted">
-            <li><Link href="/about" className="hover:text-gold-deep">About Us</Link></li>
-            <li><Link href="/contact" className="hover:text-gold-deep">Visit Butwal Store</Link></li>
-            <li><Link href="/terms" className="hover:text-gold-deep">Terms &amp; Conditions</Link></li>
-            <li><Link href="/privacy" className="hover:text-gold-deep">Privacy Policy</Link></li>
+            <li><Link href="/about" className="hover:text-gold-deep">{t('footer.about')}</Link></li>
+            <li><Link href="/contact" className="hover:text-gold-deep">{t('footer.visit')}</Link></li>
+            <li><Link href="/terms" className="hover:text-gold-deep">{t('footer.terms')}</Link></li>
+            <li><Link href="/privacy" className="hover:text-gold-deep">{t('footer.privacy')}</Link></li>
             <li>
               <button
                 type="button"
                 onClick={() => setCookieModalOpen(true)}
                 className="text-left hover:text-gold-deep"
               >
-                Cookie Preferences
+                {t('footer.cookies')}
               </button>
             </li>
           </ul>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Printer, Search } from 'lucide-react';
+import { CheckCircle2, Printer, RefreshCw, RotateCcw, Search, XCircle } from 'lucide-react';
 import { getFulfilmentStatusStyle } from '@/components/admin/fulfilment-status';
 import { formatNPR } from '@/lib/store/money';
 import type { FulfilmentStatus, Order, PaymentStatus } from '@/lib/store/types';
@@ -38,6 +38,11 @@ export default function AdminOrdersPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [q, setQ] = useState('');
   const [saving, setSaving] = useState(false);
+  const [actionBusy, setActionBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [showRefund, setShowRefund] = useState(false);
+  const [refundAmount, setRefundAmount] = useState('');
+  const [refundReason, setRefundReason] = useState('');
 
   const [fulfilmentStatus, setFulfilmentStatus] = useState<FulfilmentStatus>('ORDER_PLACED');
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('PENDING');
@@ -97,9 +102,99 @@ export default function AdminOrdersPage() {
         const data = await res.json();
         setOrders((prev) => prev.map((o) => (o.id === data.order.id ? data.order : o)));
         selectOrder(data.order);
+        if (data.notifications) {
+          setNotice(
+            `Saved. Customer email: ${data.notifications.email}, WhatsApp: ${data.notifications.whatsapp}.`
+          );
+        } else {
+          setNotice('Saved. No customer notification was needed.');
+        }
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setNotice(data.error || 'Could not save the order.');
       }
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleReconcile = async () => {
+    setActionBusy(true);
+    setNotice(null);
+    try {
+      const res = await fetch('/api/admin/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: activeOrder?.id, action: 'reconcile' }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setNotice(
+          `Reconciled: ${data.report.checked} pending, ${data.report.expired} reservations released, ${data.report.flagged.length} flagged for review.`
+        );
+        if (Array.isArray(data.orders)) setOrders(data.orders);
+      } else {
+        setNotice(data.error || 'Reconciliation failed.');
+      }
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const handleRefund = async () => {
+    if (!activeOrder) return;
+    setActionBusy(true);
+    setNotice(null);
+    try {
+      const res = await fetch('/api/admin/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: activeOrder.id,
+          action: 'refund',
+          amountPaisa: Math.round(Number(refundAmount) * 100),
+          reason: refundReason,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setOrders((prev) => prev.map((o) => (o.id === data.order.id ? data.order : o)));
+        selectOrder(data.order);
+        setShowRefund(false);
+        setRefundAmount('');
+        setRefundReason('');
+        setNotice('Refund recorded on the order.');
+      } else {
+        setNotice(data.error || 'Refund failed.');
+      }
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!activeOrder) return;
+    if (!window.confirm(`Cancel ${activeOrder.orderNumber}? Reserved stock will be returned to the shelf.`)) {
+      return;
+    }
+    setActionBusy(true);
+    setNotice(null);
+    try {
+      const res = await fetch('/api/admin/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: activeOrder.id, action: 'cancel', reason: 'Cancelled by store' }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setOrders((prev) => prev.map((o) => (o.id === data.order.id ? data.order : o)));
+        selectOrder(data.order);
+        setNotice('Order cancelled and stock restored.');
+      } else {
+        setNotice(data.error || 'Could not cancel the order.');
+      }
+    } finally {
+      setActionBusy(false);
     }
   };
 
@@ -195,6 +290,11 @@ export default function AdminOrdersPage() {
                 </div>
                 <div className="text-right text-sm font-semibold tabular-nums">
                   {formatNPR(activeOrder.totalPaisa)}
+                  {(activeOrder.payment.refundedPaisa ?? 0) > 0 && (
+                    <p className="mt-0.5 text-[11px] font-medium text-danger">
+                      Refunded {formatNPR(activeOrder.payment.refundedPaisa ?? 0)}
+                    </p>
+                  )}
                 </div>
               </div>
               <p className="mt-2 text-xs text-muted">
@@ -304,6 +404,89 @@ export default function AdminOrdersPage() {
             >
               {saving ? 'Updating Order...' : 'Save Order & Append Timeline'}
             </button>
+
+            {notice && (
+              <p className="rounded-xl border border-line bg-sand/50 p-3 text-xs text-ink">{notice}</p>
+            )}
+
+            <div className="grid gap-2 border-t border-line pt-4 sm:grid-cols-3">
+              <a
+                href={`/api/admin/orders/packing-slip?orderId=${encodeURIComponent(activeOrder.id)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-1.5 rounded-full border border-line px-3 py-2 text-xs font-medium text-ink hover:border-gold"
+              >
+                <Printer aria-hidden="true" className="h-3.5 w-3.5" /> Packing slip
+              </a>
+              <button
+                type="button"
+                onClick={handleReconcile}
+                disabled={actionBusy}
+                className="inline-flex items-center justify-center gap-1.5 rounded-full border border-line px-3 py-2 text-xs font-medium text-ink hover:border-gold disabled:opacity-50"
+              >
+                <RefreshCw aria-hidden="true" className="h-3.5 w-3.5" /> Reconcile
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowRefund((value) => !value)}
+                disabled={actionBusy || !['PAID', 'PARTIALLY_REFUNDED'].includes(activeOrder.paymentStatus)}
+                className="inline-flex items-center justify-center gap-1.5 rounded-full border border-line px-3 py-2 text-xs font-medium text-ink hover:border-gold disabled:opacity-50"
+              >
+                <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" /> Refund
+              </button>
+            </div>
+
+            {showRefund && (
+              <div className="rounded-xl border border-line bg-sand/40 p-4">
+                <p className="text-xs font-semibold text-ink">Record a refund</p>
+                <p className="mt-1 text-[11px] text-muted">
+                  Remaining refundable:{' '}
+                  {formatNPR(
+                    Math.max(
+                      0,
+                      activeOrder.totalPaisa - (activeOrder.payment.refundedPaisa ?? 0)
+                    )
+                  )}
+                  . Process the money back through Fonepay/bank, then record it here.
+                </p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-[130px_1fr]">
+                  <input
+                    type="number"
+                    min={1}
+                    value={refundAmount}
+                    onChange={(event) => setRefundAmount(event.target.value)}
+                    placeholder="Amount NPR"
+                    aria-label="Refund amount in NPR"
+                    className="rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
+                  />
+                  <input
+                    value={refundReason}
+                    onChange={(event) => setRefundReason(event.target.value)}
+                    placeholder="Reason (damaged in transit, exchange...)"
+                    aria-label="Refund reason"
+                    className="rounded-xl border border-line bg-field px-3 py-2 text-sm outline-none focus:border-gold"
+                  />
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleRefund}
+                    disabled={actionBusy}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-gold px-4 py-2 text-xs font-medium text-white hover:bg-gold-deep disabled:opacity-50"
+                  >
+                    <CheckCircle2 aria-hidden="true" className="h-3.5 w-3.5" /> Record refund
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    disabled={actionBusy}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-line px-4 py-2 text-xs font-medium text-danger hover:border-danger disabled:opacity-50"
+                  >
+                    <XCircle aria-hidden="true" className="h-3.5 w-3.5" /> Cancel order
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="border-t border-line pt-4">
               <div className="flex flex-wrap items-center justify-between gap-2">

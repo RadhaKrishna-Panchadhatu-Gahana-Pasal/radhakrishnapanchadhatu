@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getDeploymentStage } from '@/lib/payments/availability';
+import { notifyOrderPlaced } from '@/lib/notifications/dispatch';
+import { reportError } from '@/lib/observability/errors';
+import { checkRequestRateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 import {
   flushStore,
   getStore,
@@ -28,6 +31,14 @@ const VerifySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const limit = checkRequestRateLimit(req.headers, RATE_LIMITS.checkout);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: 'Too many payment attempts. Please wait a moment.' },
+      { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } }
+    );
+  }
+
   if (getDeploymentStage() === 'production') {
     return NextResponse.json(
       { error: 'Manual payment confirmation is disabled in production.' },
@@ -61,11 +72,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = verifyServerPayment(parsed.data);
+    const result = verifyServerPayment({ ...parsed.data, source: 'SANDBOX' });
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 404 });
     }
     await flushStore();
+    if (result.order.paymentStatus === 'PAID' && !result.idempotentReplay) {
+      await notifyOrderPlaced(result.order);
+    }
 
     return NextResponse.json({
       orderNumber: result.order.orderNumber,
@@ -75,7 +89,8 @@ export async function POST(req: NextRequest) {
       providerReference: result.order.payment.providerReference,
       idempotentReplay: result.idempotentReplay,
     });
-  } catch {
+  } catch (error) {
+    reportError('payments.verify', error, { path: '/api/payments/verify' });
     return NextResponse.json({ error: 'Payment verification failed.' }, { status: 500 });
   }
 }

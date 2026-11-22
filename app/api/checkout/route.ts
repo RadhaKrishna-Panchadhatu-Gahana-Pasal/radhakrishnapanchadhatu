@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { sendWhatsAppOrderConfirmation } from '@/lib/notifications/whatsapp';
-import {
-  buildFonepayPaymentUrl,
-  getFonepayConfig,
-  getRequestOrigin,
-} from '@/lib/payments/fonepay';
+import { notifyOrderPlaced } from '@/lib/notifications/dispatch';
+import { buildFonepayPaymentUrl, getFonepayConfig, getRequestOrigin } from '@/lib/payments/fonepay';
+import { reportError } from '@/lib/observability/errors';
+import { checkRequestRateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
+import { computeOrderTotals, computeCouponDiscount } from '@/lib/store/pricing';
 import {
   calculateDeliveryFee,
   createServerOrder,
@@ -13,6 +12,7 @@ import {
   getStore,
   hydrateStore,
 } from '@/lib/store/repository';
+import { markAbandonedCartRecovered } from '@/lib/store/operations';
 
 export const runtime = 'nodejs';
 
@@ -40,6 +40,7 @@ const CheckoutSchema = z.object({
     .min(1),
   paymentMethod: z.enum(['ESEWA', 'KHALTI', 'FONEPAY', 'COD']),
   couponCode: z.string().max(40).optional(),
+  giftCardCode: z.string().max(40).optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -47,11 +48,13 @@ export async function GET(req: NextRequest) {
   const province = searchParams.get('province') || 'Lumbini Province';
   const subtotalPaisa = Number(searchParams.get('subtotalPaisa') || '0');
   const couponCode = (searchParams.get('couponCode') || '').trim().toUpperCase();
+  const giftCardCode = (searchParams.get('giftCardCode') || '').trim().toUpperCase();
 
   await hydrateStore();
   const store = getStore();
   let discountPaisa = 0;
   let couponMessage: string | null = null;
+  let giftCardMessage: string | null = null;
 
   if (couponCode) {
     const coupon = store.coupons.find((c) => c.code.toUpperCase() === couponCode && c.active);
@@ -60,11 +63,19 @@ export async function GET(req: NextRequest) {
     } else if (subtotalPaisa < coupon.minOrderPaisa) {
       couponMessage = `Minimum order of NPR ${(coupon.minOrderPaisa / 100).toLocaleString()} required for ${coupon.code}.`;
     } else {
-      discountPaisa =
-        coupon.discountType === 'PERCENT'
-          ? Math.round((subtotalPaisa * coupon.value) / 100)
-          : Math.min(coupon.value, subtotalPaisa);
+      discountPaisa = computeCouponDiscount(coupon, subtotalPaisa);
       couponMessage = `Applied ${coupon.code}`;
+    }
+  }
+
+  let giftCardBalancePaisa = 0;
+  if (giftCardCode) {
+    const giftCard = store.giftCards.find((c) => c.code.toUpperCase() === giftCardCode);
+    if (!giftCard || !giftCard.active || giftCard.balancePaisa <= 0) {
+      giftCardMessage = 'Gift card is invalid, inactive, or already used up.';
+    } else {
+      giftCardBalancePaisa = giftCard.balancePaisa;
+      giftCardMessage = `Gift card balance: NPR ${(giftCard.balancePaisa / 100).toLocaleString()}`;
     }
   }
 
@@ -72,6 +83,12 @@ export async function GET(req: NextRequest) {
     province,
     Math.max(0, subtotalPaisa - discountPaisa)
   );
+  const totals = computeOrderTotals({
+    subtotalPaisa,
+    discountPaisa,
+    deliveryFeePaisa: feePaisa,
+    giftCardBalancePaisa,
+  });
 
   return NextResponse.json({
     discountPaisa,
@@ -79,10 +96,21 @@ export async function GET(req: NextRequest) {
     estimatedDays: zone?.estimatedDays ?? '2–5 business days',
     codAvailable: store.settings.codEnabled && (zone ? zone.codAvailable : true),
     couponMessage,
+    giftCardPaisa: totals.giftCardPaisa,
+    giftCardMessage,
+    totalPaisa: totals.totalPaisa,
   });
 }
 
 export async function POST(req: NextRequest) {
+  const limit = checkRequestRateLimit(req.headers, RATE_LIMITS.checkout);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: 'Too many checkout attempts. Please wait a moment and try again.' },
+      { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } }
+    );
+  }
+
   try {
     const body = await req.json();
     const parsed = CheckoutSchema.safeParse(body);
@@ -116,13 +144,14 @@ export async function POST(req: NextRequest) {
       items: parsed.data.items,
       paymentMethod: parsed.data.paymentMethod,
       couponCode: parsed.data.couponCode,
+      giftCardCode: parsed.data.giftCardCode,
     });
 
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    // Make the order durable before anything slow (gateway call, WhatsApp).
+    // Make the order durable before anything slow (gateway call, notifications).
     const orderSaved = await flushStore();
     if (!orderSaved) {
       return NextResponse.json(
@@ -134,9 +163,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (result.order.customerEmail) {
+      markAbandonedCartRecovered(result.order.customerEmail, result.order.orderNumber);
+    }
+
     // Real Fonepay redirect: signed payment request, then server-side verification
     let paymentUrl: string | undefined;
-    if (result.order.paymentMethod === 'FONEPAY') {
+    if (result.order.paymentMethod === 'FONEPAY' && result.order.totalPaisa > 0) {
       if (fonepayConfig) {
         paymentUrl = buildFonepayPaymentUrl(fonepayConfig, {
           reference: result.order.payment.providerReference,
@@ -146,17 +179,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Free WhatsApp notification instead of paid SMS. Never blocks the order:
-    // the helper returns { sent: false } when the Cloud API is not configured.
-    const appOrigin = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
-    await sendWhatsAppOrderConfirmation({
-      toPhone: result.order.customerPhone,
-      customerName: result.order.customerName,
-      orderNumber: result.order.orderNumber,
-      totalPaisa: result.order.totalPaisa,
-      itemCount: result.order.items.reduce((sum, item) => sum + item.quantity, 0),
-      trackingUrl: appOrigin ? `${appOrigin}/track-order/${result.order.trackingToken}` : undefined,
-    });
+    // Email + WhatsApp confirmation. Never blocks the order: the dispatcher
+    // records a SKIPPED notification when a channel is not configured and the
+    // ledger prevents duplicates on retries.
+    await notifyOrderPlaced(result.order);
 
     return NextResponse.json({
       orderNumber: result.order.orderNumber,
@@ -164,10 +190,12 @@ export async function POST(req: NextRequest) {
       paymentMethod: result.order.paymentMethod,
       paymentStatus: result.order.paymentStatus,
       totalPaisa: result.order.totalPaisa,
+      giftCardPaisa: result.order.giftCardPaisa ?? 0,
       providerReference: result.order.payment.providerReference,
       paymentUrl,
     });
-  } catch {
+  } catch (error) {
+    reportError('checkout', error, { path: '/api/checkout' });
     return NextResponse.json({ error: 'Unable to process checkout.' }, { status: 500 });
   }
 }

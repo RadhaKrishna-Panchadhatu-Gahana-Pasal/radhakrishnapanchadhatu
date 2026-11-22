@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRequestRateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 import { getStore, hydrateStore, toPublicTrackingView } from '@/lib/store/repository';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
+  const limit = checkRequestRateLimit(req.headers, RATE_LIMITS.trackOrder);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: 'Too many tracking lookups. Please wait a minute and try again.' },
+      { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } }
+    );
+  }
+
   const { searchParams } = new URL(req.url);
   const token = searchParams.get('token')?.trim();
   const orderNumber = searchParams.get('orderNumber')?.trim().toUpperCase();

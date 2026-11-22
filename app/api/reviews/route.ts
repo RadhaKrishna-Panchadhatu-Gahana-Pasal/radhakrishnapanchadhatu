@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { reportError } from '@/lib/observability/errors';
+import { checkRequestRateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 import { flushStore, getStore, hydrateStore, submitVerifiedReview } from '@/lib/store/repository';
 
 export const dynamic = 'force-dynamic';
@@ -26,6 +28,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const limit = checkRequestRateLimit(req.headers, RATE_LIMITS.reviews);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: 'Too many review submissions. Please try again later.' },
+      { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } }
+    );
+  }
+
   try {
     const body = await req.json();
     const parsed = ReviewSchema.safeParse(body);
@@ -41,7 +51,8 @@ export async function POST(req: NextRequest) {
     }
     await flushStore();
     return NextResponse.json({ review: result.review }, { status: 201 });
-  } catch {
+  } catch (error) {
+    reportError('reviews', error, { path: '/api/reviews' });
     return NextResponse.json({ error: 'Unable to submit review.' }, { status: 500 });
   }
 }

@@ -3,7 +3,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { CheckCircle2, Lock, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Lock, RefreshCw, ShieldCheck, Truck } from 'lucide-react';
+import { trackEvent } from '@/lib/analytics/client';
 import { AddressAutocomplete } from '@/components/maps/address-autocomplete';
 import { useStore } from '@/components/providers/store-provider';
 import { formatNPR } from '@/lib/store/money';
@@ -27,6 +28,8 @@ interface QuoteState {
   estimatedDays: string;
   codAvailable: boolean;
   couponMessage: string | null;
+  giftCardPaisa: number;
+  giftCardMessage: string | null;
 }
 
 interface PendingGatewayOrder {
@@ -67,6 +70,8 @@ export function CheckoutClient({
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState('');
+  const [giftCardInput, setGiftCardInput] = useState('');
+  const [appliedGiftCard, setAppliedGiftCard] = useState('');
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(() => {
     const firstSelectableOnline = providers.find(
@@ -94,6 +99,8 @@ export function CheckoutClient({
     estimatedDays: '1–2 business days',
     codAvailable: paymentOptions.codEnabled,
     couponMessage: null,
+    giftCardPaisa: 0,
+    giftCardMessage: null,
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -106,6 +113,7 @@ export function CheckoutClient({
       province,
       subtotalPaisa: String(cartSubtotalPaisa),
       couponCode: appliedCoupon,
+      giftCardCode: appliedGiftCard,
     });
     fetch(`/api/checkout?${params.toString()}`)
       .then((res) => res.json())
@@ -115,9 +123,40 @@ export function CheckoutClient({
         }
       })
       .catch(() => {});
-  }, [province, cartSubtotalPaisa, appliedCoupon]);
+  }, [province, cartSubtotalPaisa, appliedCoupon, appliedGiftCard]);
 
-  const finalTotalPaisa = Math.max(0, cartSubtotalPaisa - quote.discountPaisa) + quote.deliveryFeePaisa;
+  // Funnel: checkout started, and a one-shot recovery record once an email exists.
+  useEffect(() => {
+    trackEvent('checkout_start');
+  }, []);
+
+  useEffect(() => {
+    if (cart.length === 0) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) return;
+    const timer = setTimeout(() => {
+      void fetch('/api/cart/abandon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          customerName: fullName,
+          phone,
+          items: cart.map((c) => ({
+            productId: c.productId,
+            name: c.name,
+            quantity: c.quantity,
+            unitPricePaisa: c.unitPricePaisa,
+          })),
+          subtotalPaisa: cartSubtotalPaisa,
+        }),
+      }).catch(() => {});
+    }, 1800);
+    return () => clearTimeout(timer);
+  }, [email, fullName, phone, cart, cartSubtotalPaisa]);
+
+  const finalTotalPaisa =
+    Math.max(0, cartSubtotalPaisa - quote.discountPaisa - quote.giftCardPaisa) +
+    quote.deliveryFeePaisa;
 
   const handleCheckoutSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -149,6 +188,7 @@ export function CheckoutClient({
           })),
           paymentMethod,
           couponCode: appliedCoupon || undefined,
+          giftCardCode: appliedGiftCard || undefined,
         }),
       });
       const data = await res.json();
@@ -159,6 +199,7 @@ export function CheckoutClient({
       }
 
       saveTrackedOrderToken(data.trackingToken);
+      trackEvent('purchase');
       if (typeof data.paymentUrl === 'string' && data.paymentUrl) {
         // Real Fonepay sandbox/live redirect. Fonepay's callback settles the order.
         clearCart();
@@ -585,6 +626,26 @@ export function CheckoutClient({
               <p className="mt-1.5 text-xs text-gold-deep">{quote.couponMessage}</p>
             )}
 
+            <div className="mt-2 flex gap-2">
+              <input
+                value={giftCardInput}
+                onChange={(e) => setGiftCardInput(e.target.value)}
+                placeholder="Gift card code"
+                aria-label="Gift card code"
+                className="flex-1 rounded-xl border border-line bg-field px-3 py-2 text-xs uppercase outline-none focus:border-gold"
+              />
+              <button
+                type="button"
+                onClick={() => setAppliedGiftCard(giftCardInput.trim().toUpperCase())}
+                className="rounded-xl border border-line px-4 py-2 text-xs font-medium text-ink hover:border-gold"
+              >
+                Redeem
+              </button>
+            </div>
+            {quote.giftCardMessage && (
+              <p className="mt-1.5 text-xs text-gold-deep">{quote.giftCardMessage}</p>
+            )}
+
             <div className="mt-5 space-y-2 border-t border-line pt-4 text-sm">
               <div className="flex justify-between text-muted">
                 <span>Subtotal</span>
@@ -594,6 +655,12 @@ export function CheckoutClient({
                 <div className="flex justify-between text-success">
                   <span>Promo Discount</span>
                   <span className="tabular-nums">-{formatNPR(quote.discountPaisa)}</span>
+                </div>
+              )}
+              {quote.giftCardPaisa > 0 && (
+                <div className="flex justify-between text-success">
+                  <span>Gift card</span>
+                  <span className="tabular-nums">-{formatNPR(quote.giftCardPaisa)}</span>
                 </div>
               )}
               <div className="flex justify-between text-muted">
@@ -618,6 +685,21 @@ export function CheckoutClient({
               <Lock className="h-4 w-4" />
               {submitting ? 'Creating Order...' : 'Place Order'}
             </button>
+
+            <ul className="mt-4 space-y-1.5 text-[11px] leading-relaxed text-muted">
+              <li className="flex items-center gap-2">
+                <ShieldCheck aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-gold-deep" />
+                Server-verified payments · we never store wallet PINs
+              </li>
+              <li className="flex items-center gap-2">
+                <Truck aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-gold-deep" />
+                Dispatch from Butwal in {quote.estimatedDays}
+              </li>
+              <li className="flex items-center gap-2">
+                <RefreshCw aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-gold-deep" />
+                7-day exchange on unworn ready stock
+              </li>
+            </ul>
           </aside>
         </form>
       )}

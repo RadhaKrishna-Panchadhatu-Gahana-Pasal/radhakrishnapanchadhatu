@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { reportError } from '@/lib/observability/errors';
+import { checkRequestRateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 import { createCustomOrderLead, flushStore, getStore, hydrateStore } from '@/lib/store/repository';
 import { buildCustomOrderWhatsAppUrl } from '@/lib/store/whatsapp';
 
@@ -14,6 +16,14 @@ const CustomOrderSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const limit = checkRequestRateLimit(req.headers, RATE_LIMITS.customOrder);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: 'Too many custom order requests. Please wait a few minutes.' },
+      { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } }
+    );
+  }
+
   try {
     const body = await req.json();
     const parsed = CustomOrderSchema.safeParse(body);
@@ -36,7 +46,8 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ request: requestRecord, whatsappUrl }, { status: 201 });
-  } catch {
+  } catch (error) {
+    reportError('custom-order', error, { path: '/api/custom-order-requests' });
     return NextResponse.json({ error: 'Unable to save custom order request.' }, { status: 500 });
   }
 }

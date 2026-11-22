@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { reportError } from '@/lib/observability/errors';
+import { checkRequestRateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 import { flushStore, getStore, hydrateStore, nowIso, saveStore, uid } from '@/lib/store/repository';
 
 const ContactSchema = z.object({
@@ -10,6 +12,14 @@ const ContactSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const limit = checkRequestRateLimit(req.headers, RATE_LIMITS.contact);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: 'Too many messages. Please wait a few minutes before trying again.' },
+      { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } }
+    );
+  }
+
   try {
     const body = await req.json();
     const parsed = ContactSchema.safeParse(body);
@@ -30,7 +40,8 @@ export async function POST(req: NextRequest) {
     saveStore();
     await flushStore();
     return NextResponse.json({ enquiry }, { status: 201 });
-  } catch {
+  } catch (error) {
+    reportError('contact', error, { path: '/api/contact' });
     return NextResponse.json({ error: 'Unable to send message.' }, { status: 500 });
   }
 }

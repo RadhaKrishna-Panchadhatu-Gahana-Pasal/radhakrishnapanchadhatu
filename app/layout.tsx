@@ -8,8 +8,10 @@ import { CookieConsentBanner } from '@/components/layout/cookie-consent-banner';
 import { Footer } from '@/components/layout/footer';
 import { Header } from '@/components/layout/header';
 import { OfflineIndicator } from '@/components/pwa/offline-indicator';
+import { LocaleProvider } from '@/components/providers/locale-provider';
 import { StoreProvider } from '@/components/providers/store-provider';
 import { ThemeProvider } from '@/components/providers/theme-provider';
+import { buildLocalBusinessJsonLd } from '@/lib/seo/local-business';
 import { getFirebaseClientConfig } from '@/lib/firebase/server-config';
 import { getSiteBaseUrl } from '@/lib/seo/metadata';
 import { getStore, hydrateStore } from '@/lib/store/repository';
@@ -94,6 +96,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const activeAnnouncements = store.announcements
     .filter((a) => a.enabled)
     .sort((a, b) => a.sortOrder - b.sortOrder);
+  const localBusiness = buildLocalBusinessJsonLd(store.settings, getSiteBaseUrl());
 
   return (
     <html
@@ -103,18 +106,27 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     >
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusiness) }}
+        />
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
         <ThemeProvider>
-          <StoreProvider firebaseConfig={firebaseConfig}>
-            <div className="flex min-h-screen flex-col bg-sand text-ink">
-              <AnnouncementBar announcements={activeAnnouncements} />
-              <Header storeName={store.settings.storeName} />
-              <main className="flex-1">{children}</main>
-              <Footer settings={store.settings} />
-            </div>
-            <CartDrawer />
-            <CookieConsentBanner />
-            <OfflineIndicator />
-          </StoreProvider>
+          <LocaleProvider>
+            <StoreProvider firebaseConfig={firebaseConfig}>
+              <div className="flex min-h-screen flex-col bg-sand text-ink">
+                <AnnouncementBar announcements={activeAnnouncements} />
+                <Header storeName={store.settings.storeName} />
+                <main id="main-content" className="flex-1">{children}</main>
+                <Footer settings={store.settings} />
+              </div>
+              <CartDrawer />
+              <CookieConsentBanner />
+              <OfflineIndicator />
+            </StoreProvider>
+          </LocaleProvider>
         </ThemeProvider>
         <Analytics />
       </body>

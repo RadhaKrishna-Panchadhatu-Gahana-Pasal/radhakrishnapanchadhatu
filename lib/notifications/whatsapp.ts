@@ -22,6 +22,18 @@ export interface WhatsAppOrderConfirmation {
   totalPaisa: number;
   itemCount: number;
   trackingUrl?: string;
+  /** Cash-on-delivery orders get a call-confirmation line instead of a payment line. */
+  cod?: boolean;
+}
+
+export interface WhatsAppStatusUpdate {
+  toPhone: string;
+  customerName: string;
+  orderNumber: string;
+  status: string;
+  courierName?: string;
+  trackingReference?: string;
+  trackingUrl?: string;
 }
 
 export interface WhatsAppSendResult {
@@ -50,6 +62,7 @@ export function buildOrderConfirmationText(payload: WhatsAppOrderConfirmation): 
     '',
     `Your order ${payload.orderNumber} has been received by Radhakrishna Panchadhatu.`,
     `Items: ${payload.itemCount} · Total: ${total}`,
+    payload.cod ? 'Payment: Cash on Delivery — we will call to confirm before dispatch.' : null,
     payload.trackingUrl ? `Track it here: ${payload.trackingUrl}` : null,
     '',
     'We will confirm dispatch from Butwal on this number.',
@@ -58,14 +71,12 @@ export function buildOrderConfirmationText(payload: WhatsAppOrderConfirmation): 
   return lines.join('\n');
 }
 
-export async function sendWhatsAppOrderConfirmation(
-  payload: WhatsAppOrderConfirmation
-): Promise<WhatsAppSendResult> {
+async function sendWhatsAppText(rawPhone: string, body: string): Promise<WhatsAppSendResult> {
   if (!isWhatsAppCloudConfigured()) {
     return { sent: false, detail: 'WhatsApp Cloud API is not configured.' };
   }
 
-  const to = normalizeNepalPhone(payload.toPhone);
+  const to = normalizeNepalPhone(rawPhone);
   if (!to) {
     return { sent: false, detail: 'No customer phone number on the order.' };
   }
@@ -87,7 +98,7 @@ export async function sendWhatsAppOrderConfirmation(
           recipient_type: 'individual',
           to,
           type: 'text',
-          text: { preview_url: false, body: buildOrderConfirmationText(payload) },
+          text: { preview_url: false, body },
         }),
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       }
@@ -103,4 +114,45 @@ export async function sendWhatsAppOrderConfirmation(
       detail: error instanceof Error ? error.message : 'Unknown WhatsApp API error.',
     };
   }
+}
+
+export async function sendWhatsAppOrderConfirmation(
+  payload: WhatsAppOrderConfirmation
+): Promise<WhatsAppSendResult> {
+  return sendWhatsAppText(payload.toPhone, buildOrderConfirmationText(payload));
+}
+
+const STATUS_LINES: Record<string, string> = {
+  ORDER_PLACED: 'has been received',
+  ORDER_RECEIVED: 'is confirmed and with the store team',
+  PROCESSING: 'is being prepared and polished in Butwal',
+  READY_TO_DISPATCH: 'is packed and ready for the courier',
+  DISPATCHED: 'has been dispatched from our Butwal store',
+  IN_TRANSIT: 'is in transit with the courier',
+  OUT_FOR_DELIVERY: 'is out for delivery today',
+  DELIVERED: 'has been delivered. Thank you for shopping with us',
+  CANCELLED: 'has been cancelled',
+  RETURN_REQUESTED: '— we have received your return request',
+  RETURNED: '— your return has been received and is being processed',
+};
+
+/** Order status update for the customer's WhatsApp (best effort, never throws). */
+export async function sendWhatsAppStatusUpdate(
+  payload: WhatsAppStatusUpdate
+): Promise<WhatsAppSendResult> {
+  const line = STATUS_LINES[payload.status] ?? `status is now ${payload.status.replaceAll('_', ' ').toLowerCase()}`;
+  const body = [
+    `Namaste ${payload.customerName},`,
+    '',
+    `Your order ${payload.orderNumber} ${line}.`,
+    payload.courierName ? `Courier: ${payload.courierName}` : null,
+    payload.trackingReference ? `Tracking ref: ${payload.trackingReference}` : null,
+    payload.trackingUrl ? `Track: ${payload.trackingUrl}` : null,
+    '',
+    'Radhakrishna Panchadhatu · Butwal',
+  ]
+    .filter((row): row is string => row !== null)
+    .join('\n');
+
+  return sendWhatsAppText(payload.toPhone, body);
 }

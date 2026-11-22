@@ -17,6 +17,8 @@ const ADMIN_NAV = [
   { href: '/admin/homepage', label: 'Homepage Sections' },
   { href: '/admin/pages', label: 'Pages & Policies' },
   { href: '/admin/media', label: 'Media Library' },
+  { href: '/admin/gift-cards', label: 'Gift Cards' },
+  { href: '/admin/system', label: 'System & Backups' },
   { href: '/admin/settings', label: 'Settings & Logs' },
 ];
 
