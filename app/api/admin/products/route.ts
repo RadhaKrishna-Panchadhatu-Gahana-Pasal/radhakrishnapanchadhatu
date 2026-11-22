@@ -62,6 +62,8 @@ export async function POST(req: NextRequest) {
     const cat = store.categories.find(
       (c) => c.name.toLowerCase() === parsed.data.categoryName.toLowerCase()
     );
+    if (!cat?.isActive) return NextResponse.json({ error: 'Select an active category.' }, { status: 400 });
+    if (parsed.data.sku && store.products.some((p) => p.sku === parsed.data.sku?.trim())) return NextResponse.json({ error: 'This SKU already exists.' }, { status: 409 });
     const pricePaisa =
       parsed.data.priceNpr !== undefined && String(parsed.data.priceNpr).trim() !== ''
         ? paisaFromNPR(parsed.data.priceNpr)

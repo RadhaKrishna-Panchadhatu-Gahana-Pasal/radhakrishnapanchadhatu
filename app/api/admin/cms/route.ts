@@ -97,10 +97,15 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ homepageSections: store.homepageSections });
     }
     case 'page': {
-      const idx = store.pages.findIndex((p) => p.slug === body.data.slug);
-      if (idx >= 0) {
-        store.pages[idx] = { ...store.pages[idx], ...body.data, updatedAt: nowIso() };
+      const { slug, title, summary, content } = body.data ?? {};
+      const page = store.pages.find((p) => p.slug === slug);
+      if (!page) return NextResponse.json({ error: 'Page not found.' }, { status: 404 });
+      if (typeof title !== 'string' || !title.trim() || title.length > 200 ||
+          typeof summary !== 'string' || summary.length > 2000 ||
+          typeof content !== 'string' || !content.trim() || content.length > 50000) {
+        return NextResponse.json({ error: 'Check the title, summary and body length before saving.' }, { status: 400 });
       }
+      Object.assign(page, { title: title.trim(), summary: summary.trim(), content: content.trim(), updatedAt: nowIso() });
       appendAuditLog({
         actor: session.name,
         role: session.role,

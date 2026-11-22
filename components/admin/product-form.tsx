@@ -47,12 +47,14 @@ const defaultValues: ProductFormValues = {
 export function ProductForm({
   initialValues = defaultValues,
   mode = 'create',
+  categories,
 }: {
+  categories: string[];
   initialValues?: Partial<ProductFormValues>;
   mode?: 'create' | 'edit';
 }) {
   const router = useRouter();
-  const [form, setForm] = useState<ProductFormValues>({ ...defaultValues, ...initialValues });
+  const [form, setForm] = useState<ProductFormValues>({ ...defaultValues, category: categories[0] ?? '', ...initialValues });
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
@@ -156,12 +158,7 @@ export function ProductForm({
             onChange={(e) => updateField('category', e.target.value)}
             className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm outline-none focus:border-gold"
           >
-            <option>Panchadhatu</option>
-            <option>Steel Jewellery</option>
-            <option>Necklaces</option>
-            <option>Rings</option>
-            <option>Earrings</option>
-            <option>Bracelets &amp; Bangles</option>
+            {categories.map((name) => <option key={name}>{name}</option>)}
           </select>
         </label>
 
@@ -273,6 +270,12 @@ export function ProductForm({
           Mark as New Arrival
         </label>
 
+        {([['sku', 'SKU', 64], ['shortDescription', 'Short description', 400], ['careInstructions', 'Care instructions', 600], ['deliveryNote', 'Delivery note', 400]] as const).map(([field, label, maxLength]) => (
+          <label key={field} className="block text-sm font-medium text-ink">
+            {label}
+            <input value={form[field]} maxLength={maxLength} onChange={(e) => updateField(field, e.target.value)} className="mt-1.5 w-full rounded-xl border border-line bg-[#FAF8F4] px-4 py-2.5 text-sm focus:border-gold" />
+          </label>
+        ))}
         <label className="block text-sm font-medium text-ink md:col-span-2">
           Product Description
           <textarea
