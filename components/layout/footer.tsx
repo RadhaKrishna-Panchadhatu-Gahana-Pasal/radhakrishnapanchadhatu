@@ -11,8 +11,16 @@ export function Footer({ settings }: { settings: StoreSettings }) {
   const { setCookieModalOpen } = useStore();
 
   return (
-    <footer className="border-t border-line bg-surface">
-      <div className="container-shell grid gap-10 py-14 md:grid-cols-4">
+    <footer className="relative overflow-hidden border-t border-line bg-surface">
+      {/* Studio watermark: a faint presence, never over the shopping content. */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 select-none whitespace-nowrap text-center font-serif text-[15vw] font-semibold leading-[0.78] tracking-tight text-ink/[0.04]"
+      >
+        Lamir Kohsa
+      </span>
+
+      <div className="container-shell relative grid gap-10 py-14 md:grid-cols-4">
         <div className="md:col-span-1">
           <Link href="/" aria-label={`${settings.storeName} home`} className="inline-block">
             <Image
@@ -99,12 +107,32 @@ export function Footer({ settings }: { settings: StoreSettings }) {
         </div>
       </div>
 
-      <div className="border-t border-line bg-sand/50">
-        <div className="container-shell flex flex-wrap items-center justify-between gap-3 py-4 text-xs text-muted">
+      <div className="relative border-t border-line bg-sand/50">
+        <div className="container-shell flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-4 text-xs text-muted">
           <span>
             &copy; {new Date().getFullYear()} {settings.storeName} · {settings.address}, Butwal
           </span>
           <span>Currency: NPR · Timezone: Asia/Kathmandu · eSewa / Khalti / Fonepay / COD</span>
+          <span className="flex items-center gap-1.5">
+            <span>Website by</span>
+            <a
+              href="https://github.com/ashokrimal"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-ink/75 underline-offset-2 transition hover:text-gold-deep hover:underline"
+            >
+              Ashok Rimal
+            </a>
+            <span aria-hidden="true" className="text-line">
+              |
+            </span>
+            <span
+              className="font-serif text-[13px] tracking-[0.08em] text-gold-deep/75"
+              title="Lamir Kohsa"
+            >
+              Lamir Kohsa
+            </span>
+          </span>
         </div>
       </div>
     </footer>
