@@ -1,5 +1,4 @@
 import type { PrismaClient } from '@prisma/client';
-import type { StoreDatabase } from './repository';
 
 /**
  * Postgres snapshot storage for the shop.
@@ -113,5 +112,3 @@ export async function getDatabaseStatus(): Promise<{
     };
   }
 }
-
-export type { StoreDatabase };

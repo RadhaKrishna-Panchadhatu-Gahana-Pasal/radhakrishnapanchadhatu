@@ -90,9 +90,8 @@ export function formatFonepayDate(date: Date = new Date()): string {
     day: '2-digit',
     year: 'numeric',
   }).formatToParts(date);
-  const get = (type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((part) => part.type === type)?.value ?? '';
-  return `${get('month')}/${get('day')}/${get('year')}`;
+  const part = (type: string) => parts.find((entry) => entry.type === type)?.value ?? '';
+  return `${part('month')}/${part('day')}/${part('year')}`;
 }
 
 /** Constant-time comparison of two hex signatures, ignoring case. */
@@ -183,15 +182,26 @@ export async function verifyFonepayTransaction(
     DV: dv,
   });
 
-  const response = await fetch(
-    `${config.baseUrl}/api/merchantRequest/verificationMerchant?${search.toString()}`,
-    {
-      method: 'GET',
-      cache: 'no-store',
-      signal: AbortSignal.timeout(20_000),
-      headers: { Accept: 'application/xml, text/xml, */*' },
-    }
-  );
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20_000);
+  let response: Response | null = null;
+  try {
+    response = await fetch(
+      `${config.baseUrl}/api/merchantRequest/verificationMerchant?${search.toString()}`,
+      {
+        method: 'GET',
+        cache: 'no-store',
+        signal: controller.signal,
+        headers: { Accept: 'application/xml, text/xml, */*' },
+      }
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (!response) {
+    throw new Error('Fonepay verification could not be completed.');
+  }
 
   if (!response.ok) {
     throw new Error(`Fonepay verification failed with HTTP ${response.status}.`);
